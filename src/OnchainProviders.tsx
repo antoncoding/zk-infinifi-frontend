@@ -5,7 +5,6 @@ import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowki
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { createWagmiConfig } from '@/store/createWagmiConfig';
-import { ConnectRedirectProvider } from './components/providers/ConnectRedirectProvider';
 
 type Props = { children: ReactNode };
 
@@ -38,7 +37,7 @@ function OnchainProviders({ children }: Props) {
           }}
           modalSize="compact"
         >
-          <ConnectRedirectProvider>{children}</ConnectRedirectProvider>
+          {children}
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

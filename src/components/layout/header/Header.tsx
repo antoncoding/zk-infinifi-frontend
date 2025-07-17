@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Menu from './Menu';
+import Menu from './UnifiedNavbar';
 
 export type HeaderProps = {
   ghost?: boolean;
