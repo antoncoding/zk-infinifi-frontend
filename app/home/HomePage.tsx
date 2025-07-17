@@ -7,23 +7,23 @@ import { Button } from '@/components/common/Button';
 import Header from '@/components/layout/header/Header';
 
 export default function HomePage() {
-  const [showCustomized, setShowCustomized] = useState(true);
-  const [riskYieldIndex, setRiskYieldIndex] = useState(0);
+  const [showWeb3, setShowWeb3] = useState(true);
+  const [techIndex, setTechIndex] = useState(0);
   const [secondCounter, setSecondCounter] = useState(0);
 
-  const riskYieldTerms = ['risk', 'yield'];
-  const secondPhrases = ['on Morpho Blue', 'with no intermediates'];
+  const techTerms = ['Next.js', 'TypeScript', 'Tailwind'];
+  const secondPhrases = ['Web3 Template', 'Ready to Build'];
 
   useEffect(() => {
-    // Toggle between customized and manage your own every 5 seconds
-    const customizedInterval = setInterval(() => {
-      setShowCustomized((prev) => !prev);
+    // Toggle between web3 and modern every 5 seconds
+    const web3Interval = setInterval(() => {
+      setShowWeb3((prev) => !prev);
     }, 5000);
 
-    // Change risk/yield every 3 seconds when showing manage your own
-    const riskYieldInterval = setInterval(() => {
-      if (!showCustomized) {
-        setRiskYieldIndex((prev) => (prev + 1) % riskYieldTerms.length);
+    // Change tech terms every 3 seconds when showing modern
+    const techInterval = setInterval(() => {
+      if (!showWeb3) {
+        setTechIndex((prev) => (prev + 1) % techTerms.length);
       }
     }, 3000);
 
@@ -33,30 +33,30 @@ export default function HomePage() {
     }, 4000);
 
     return () => {
-      clearInterval(customizedInterval);
-      clearInterval(riskYieldInterval);
+      clearInterval(web3Interval);
+      clearInterval(techInterval);
       clearInterval(secondInterval);
     };
-  }, [showCustomized]);
+  }, [showWeb3]);
 
   const renderFirstPhrase = () => {
-    if (showCustomized) {
+    if (showWeb3) {
       return (
         <span className="absolute inset-0 flex items-center justify-center text-primary transition-all duration-700 ease-in-out">
-          Customized lending
+          Modern Web3
         </span>
       );
     }
     return (
       <span className="absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out">
         <span className="-ml-8 inline-flex items-center text-primary">
-          Manage your own
+          Built with
           <span className="relative mx-2 inline-flex items-center md:mx-4">
-            {riskYieldTerms.map((term, index) => (
+            {techTerms.map((term, index) => (
               <span
                 key={term}
-                className={`absolute left-0 text-monarch-primary transition-all duration-700 ease-in-out ${
-                  index === riskYieldIndex
+                className={`absolute left-0 text-primary transition-all duration-700 ease-in-out ${
+                  index === techIndex
                     ? 'transform-none opacity-100'
                     : 'translate-y-3 transform opacity-0'
                 }`}
@@ -93,27 +93,21 @@ export default function HomePage() {
                         : '-translate-y-2 opacity-0'
                     }`}
                   >
-                    {phrase.includes('Morpho Blue') ? (
-                      <span>
-                        on <span className="text-blue-500">Morpho Blue</span>
-                      </span>
-                    ) : (
-                      phrase
-                    )}
+                    {phrase}
                   </span>
                 ))}
               </div>
             </h2>
           </div>
           <div className="mt-8 flex w-full justify-center gap-4 px-4 sm:w-auto sm:flex-row">
-            <Link href="/info" className="block w-full sm:w-auto">
+            <Link href="/docs" className="block w-full sm:w-auto">
               <Button variant="default" className="w-full px-10 py-4 font-zen" size="lg">
-                Learn More
+                Documentation
               </Button>
             </Link>
-            <Link href={`/positions/${address ?? ''}`} className="block w-full sm:w-auto">
+            <Link href="/demo" className="block w-full sm:w-auto">
               <Button variant="cta" className="w-full px-10 py-4 font-zen" size="lg">
-                Launch App
+                Get Started
               </Button>
             </Link>
           </div>

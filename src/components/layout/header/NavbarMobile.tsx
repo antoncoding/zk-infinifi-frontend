@@ -42,13 +42,13 @@ export default function NavbarMobile() {
               </NavbarLink>
             </li>
             <li className="flex">
-              <NavbarLink href="/markets" matchKey="/markets">
-                <p className="text-base opacity-80 hover:opacity-100">Markets</p>
+              <NavbarLink href="/demo" matchKey="/demo">
+                <p className="text-base opacity-80 hover:opacity-100">Demo</p>
               </NavbarLink>
             </li>
             <li className="flex">
-              <NavbarLink href={`/positions/${address ?? ''}`} matchKey="/positions">
-                <p className="text-base opacity-80 hover:opacity-100">Portfolio</p>
+              <NavbarLink href="/docs" matchKey="/docs">
+                <p className="text-base opacity-80 hover:opacity-100">Documentation</p>
               </NavbarLink>
             </li>
             <li className="flex">
@@ -58,7 +58,7 @@ export default function NavbarMobile() {
             </li>
           </ul>
           <div className="mx-2 mt-4">
-            <AccountConnect onConnectPath="positions" />
+            <AccountConnect onConnectPath="demo" />
           </div>
         </div>
       </nav>

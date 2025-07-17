@@ -1,7 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { Button } from '@/components/common';
-import { useConnectRedirect } from '@/components/providers/ConnectRedirectProvider';
 import { AccountDropdown } from './AccountDropdown';
 
 /**
@@ -9,8 +8,6 @@ import { AccountDropdown } from './AccountDropdown';
  * @returns
  */
 function AccountConnect({ onConnectPath }: { onConnectPath?: string }) {
-  const { setRedirectPath } = useConnectRedirect();
-
   return (
     <ConnectButton.Custom>
       {({ account, chain, openConnectModal, authenticationStatus, mounted }) => {
@@ -22,7 +19,6 @@ function AccountConnect({ onConnectPath }: { onConnectPath?: string }) {
           (!authenticationStatus || authenticationStatus === 'authenticated');
 
         const handleClicked = () => {
-          setRedirectPath(onConnectPath);
           openConnectModal();
         };
 

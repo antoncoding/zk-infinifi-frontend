@@ -44,8 +44,3 @@ export const getExplorerTxURL = (hash: string, chain: SupportedNetworks): string
   }
 };
 
-export const EXTERNAL_LINKS = {
-  docs: 'https://monarch-lend.gitbook.io/monarch-lend/',
-  discord: 'https://discord.gg/Ur4dwN3aPS',
-  github: 'https://github.com/monarch-xyz',
-} as const;

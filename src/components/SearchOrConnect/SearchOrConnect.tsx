@@ -31,7 +31,7 @@ export default function SearchOrConnect({ path }: { path: string }) {
                 <button type="button" className="text-roboto bg-surface w-80 rounded-sm p-4 px-10 ">
                   View Account {address.slice(0, 8)}
                 </button>
-                <div className="bg-monarch-orange w-15 justify-center p-6 text-center text-3xl">
+                <div className="bg-primary w-15 justify-center p-6 text-center text-3xl text-primary-foreground">
                   {' '}
                   <ArrowRightIcon />{' '}
                 </div>
@@ -69,7 +69,7 @@ export default function SearchOrConnect({ path }: { path: string }) {
                   toast.error('Invalid address', `The address ${inputAddress} is not valid.`);
                 }
               }}
-              className="bg-monarch-orange justify-center p-6 text-center text-sm duration-100 ease-in-out hover:opacity-100"
+              className="bg-primary justify-center p-6 text-center text-sm text-primary-foreground duration-100 ease-in-out hover:opacity-100"
             >
               <ArrowRightIcon />{' '}
             </button>

@@ -1,40 +1,53 @@
 import type { Metadata } from 'next';
 
-type MetaTagsProps = {
-  title: string;
-  description: string;
-  frame?: Record<string, string> | Record<string, never>;
-  images: string | string[];
+interface GenerateMetadataProps {
+  title?: string;
+  description?: string;
   url?: string;
-  pathname: string;
-};
+  image?: string;
+}
 
-const deployUrl = process.env.BOAT_DEPLOY_URL ?? process.env.VERCEL_URL;
-const defaultUrl = deployUrl
-  ? `https://${deployUrl}`
-  : `http://localhost:${process.env.PORT ?? 3000}`;
-
-export const generateMetadata = ({
-  title = 'Monarch',
-  description = 'Permission-less access to morpho blue protocol',
-  frame = {},
-  images,
-  url = 'https://github.com/antoncoding/monarch',
-  pathname,
-}: MetaTagsProps): Metadata => {
-  const i = Array.isArray(images) ? images : [images];
+export function generateMetadata({
+  title = 'Web3 Next.js Template',
+  description = 'A modern web3 template built with Next.js, TypeScript, and Tailwind CSS',
+  url = 'https://github.com/your-username/web3-next-template',
+  image = '/og-image.png',
+}: GenerateMetadataProps = {}): Metadata {
   return {
-    metadataBase: new URL(defaultUrl),
     title,
     description,
     openGraph: {
-      url: `${url}${pathname ?? ''}`,
       title,
       description,
-      images: i.map((img) => `${url}/social/${img}`),
+      url,
+      siteName: 'Web3 Next.js Template',
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: 'en_US',
+      type: 'website',
     },
-    other: {
-      ...frame,
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
   };
-};
+}

@@ -1,8 +1,13 @@
 import React, { useMemo } from 'react';
-import { Tooltip } from '@nextui-org/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import Image from 'next/image';
 import { useTokens } from '@/components/providers/TokenProvider';
-import { TooltipContent } from './TooltipContent';
+import { TooltipContent as CustomTooltipContent } from './TooltipContent';
 type TokenIconProps = {
   address: string;
   chainId: number;
@@ -31,19 +36,26 @@ export function TokenIcon({ address, chainId, width, height, opacity }: TokenIco
 
     const detail = token.isFactoryToken
       ? `This token is auto-detected from ${token.protocol?.name} `
-      : `This token is whitelisted by Monarch`;
+      : `This token is verified`;
 
     return (
-      <Tooltip content={<TooltipContent title={token.symbol} detail={detail} icon={img} />}>
-        <Image
-          className="rounded-full"
-          src={token.img}
-          alt={token.symbol}
-          width={width}
-          height={height}
-          style={{ opacity }}
-        />
-      </Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Image
+              className="rounded-full"
+              src={token.img}
+              alt={token.symbol}
+              width={width}
+              height={height}
+              style={{ opacity }}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            <CustomTooltipContent title={token.symbol} detail={detail} icon={img} />
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 

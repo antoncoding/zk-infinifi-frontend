@@ -1,6 +1,5 @@
 'use client';
 
-import { NextUIProvider } from '@nextui-org/react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { ToastContainer } from 'react-toastify';
 
@@ -13,7 +12,7 @@ export function ThemeProviders({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
       themes={['light', 'dark']}
     >
-      <NextUIProvider>{children}</NextUIProvider>
+      {children}
       <ToastContainer
         position="bottom-right"
         toastClassName="bg-[#fff] dark:bg-[#202426] text-[#000] dark:text-[#fff]"

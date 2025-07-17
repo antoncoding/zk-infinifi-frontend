@@ -1,1 +1,1 @@
-export const MarketSortColumnKey = 'monarch_marketsSortColumn';
+export const MarketSortColumnKey = 'web3_template_marketsSortColumn';

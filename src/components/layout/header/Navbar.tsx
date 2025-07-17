@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@nextui-org/react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import { clsx } from 'clsx';
 import Image from 'next/image';
@@ -13,9 +18,9 @@ import { FiSettings } from 'react-icons/fi';
 import { LuSunMedium } from 'react-icons/lu';
 import { RiBookLine, RiDiscordFill, RiGithubFill } from 'react-icons/ri';
 import { useAccount } from 'wagmi';
-import { EXTERNAL_LINKS } from '@/utils/external';
-import logo from '../../imgs/logo.png';
 import AccountConnect from './AccountConnect';
+
+const logo = require('../../../../public/icon.png');
 
 export function NavbarLink({
   children,
@@ -55,9 +60,9 @@ export function NavbarTitle() {
         href="/"
         passHref
         className="text-center font-zen text-lg font-medium text-primary no-underline"
-        aria-label="build-onchain-apps Github repository"
+        aria-label="Web3 Next.js Template"
       >
-        Monarch
+        Web3 Template
       </Link>
     </div>
   );
@@ -83,27 +88,10 @@ export function Navbar() {
 
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-2">
-          <NavbarLink href="/markets">Markets</NavbarLink>
-          {mounted ? (
-            <>
-              <NavbarLink href={address ? `/positions/${address}` : '/positions'}>
-                Portfolio
-              </NavbarLink>
-              <NavbarLink href={address ? `/rewards/${address}` : '/rewards'} matchKey="/rewards">
-                Rewards
-              </NavbarLink>
-            </>
-          ) : (
-            <>
-              <NavbarLink href="/positions">Portfolio</NavbarLink>
-              <NavbarLink href="/rewards" matchKey="/rewards">
-                Rewards
-              </NavbarLink>
-            </>
-          )}
+          <NavbarLink href="/">Home</NavbarLink>
 
-          <Dropdown onOpenChange={setIsMoreOpen} className="rounded-sm">
-            <DropdownTrigger>
+          <DropdownMenu open={isMoreOpen} onOpenChange={setIsMoreOpen}>
+            <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 className={clsx(
@@ -124,57 +112,50 @@ export function Navbar() {
                   )}
                 />
               </button>
-            </DropdownTrigger>
-            <DropdownMenu
-              aria-label="More links"
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
               className="bg-surface min-w-[180px] rounded-sm border-none shadow-none"
-              itemClasses={{
-                base: [
-                  'gap-4 px-4 py-2 rounded-none font-zen',
-                  'data-[hover=true]:bg-hovered rounded-sm',
-                ].join(' '),
-                title: 'text-sm text-primary flex-grow font-zen',
-                wrapper: 'justify-between no-underline rounded-sm',
-              }}
             >
-              <DropdownItem
-                key="docs"
-                endContent={<RiBookLine className="h-4 w-4" />}
-                onClick={() => window.open(EXTERNAL_LINKS.docs, '_blank')}
+              <DropdownMenuItem
+                onClick={() => window.open('https://github.com/', '_blank')}
+                className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
               >
-                Docs
-              </DropdownItem>
-              <DropdownItem
-                key="discord"
-                endContent={<RiDiscordFill className="h-4 w-4" />}
-                onClick={() => window.open(EXTERNAL_LINKS.discord, '_blank')}
+                <span className="text-sm text-primary flex-grow font-zen">Docs</span>
+                <RiBookLine className="h-4 w-4" />
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => window.open('https://discord.gg/', '_blank')}
+                className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
               >
-                Discord
-              </DropdownItem>
-              <DropdownItem
-                key="github"
-                endContent={<RiGithubFill className="h-4 w-4" />}
-                onClick={() => window.open(EXTERNAL_LINKS.github, '_blank')}
+                <span className="text-sm text-primary flex-grow font-zen">Discord</span>
+                <RiDiscordFill className="h-4 w-4" />
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => window.open('https://github.com/', '_blank')}
+                className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
               >
-                GitHub
-              </DropdownItem>
-              <DropdownItem
-                key="theme"
-                endContent={
-                  mounted &&
-                  (theme === 'dark' ? <LuSunMedium size={16} /> : <FaRegMoon size={14} />)
-                }
+                <span className="text-sm text-primary flex-grow font-zen">GitHub</span>
+                <RiGithubFill className="h-4 w-4" />
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={toggleTheme}
+                className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
               >
-                {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
-              </DropdownItem>
-              <DropdownItem key="settings" endContent={<FiSettings className="h-4 w-4" />}>
-                <Link href="/settings" className="text-sm text-primary no-underline">
+                <span className="text-sm text-primary flex-grow font-zen">
+                  {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
+                </span>
+                {mounted &&
+                  (theme === 'dark' ? <LuSunMedium size={16} /> : <FaRegMoon size={14} />)}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm">
+                <Link href="/settings" className="text-sm text-primary no-underline flex-grow">
                   Settings
                 </Link>
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+                <FiSettings className="h-4 w-4" />
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex items-center gap-6">

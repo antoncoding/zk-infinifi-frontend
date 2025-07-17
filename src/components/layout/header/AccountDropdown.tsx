@@ -1,7 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@nextui-org/react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { ExitIcon, ExternalLinkIcon, CopyIcon } from '@radix-ui/react-icons';
 import { clsx } from 'clsx';
 import { useAccount, useDisconnect } from 'wagmi';
@@ -31,8 +37,8 @@ export function AccountDropdown() {
   if (!address) return null;
 
   return (
-    <Dropdown className="rounded-sm">
-      <DropdownTrigger>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <div
           className={clsx(
             'flex h-8 w-8 cursor-pointer items-center justify-center',
@@ -41,49 +47,43 @@ export function AccountDropdown() {
         >
           <Avatar address={address} />
         </div>
-      </DropdownTrigger>
-      <DropdownMenu
-        aria-label="Account actions"
-        itemClasses={{
-          base: [
-            'gap-4 px-4 py-2 rounded-none font-zen',
-            'data-[hover=true]:bg-hovered rounded-sm',
-          ].join(' '),
-          title: 'text-sm text-primary flex-grow font-zen',
-          wrapper: 'justify-between no-underline rounded-sm',
-        }}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="bg-surface min-w-[200px] rounded-sm border-none shadow-none"
       >
-        <DropdownItem className="border-b border-primary/10 pb-4" isReadOnly showDivider={false}>
+        <DropdownMenuItem className="border-b border-primary/10 pb-4" disabled>
           <div className="flex w-full flex-col gap-2">
             <AccountWithENS address={address} />
           </div>
-        </DropdownItem>
+        </DropdownMenuItem>
 
-        <DropdownItem
-          key="copy"
+        <DropdownMenuItem
           onClick={handleCopyAddress}
-          endContent={<CopyIcon className="h-4 w-4" />}
+          className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
         >
-          Copy Address
-        </DropdownItem>
+          <span className="text-sm text-primary flex-grow font-zen">Copy Address</span>
+          <CopyIcon className="h-4 w-4" />
+        </DropdownMenuItem>
 
-        <DropdownItem
-          key="explorer"
-          endContent={<ExternalLinkIcon className="h-4 w-4" />}
+        <DropdownMenuItem
           onClick={() => window.open(getExplorerURL(address, chainId ?? 1), '_blank')}
+          className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
         >
-          View on Explorer
-        </DropdownItem>
+          <span className="text-sm text-primary flex-grow font-zen">View on Explorer</span>
+          <ExternalLinkIcon className="h-4 w-4" />
+        </DropdownMenuItem>
 
-        <DropdownItem
-          key="logout"
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
           onClick={handleDisconnectWallet}
-          endContent={<ExitIcon className="h-4 w-4" />}
-          className="text-red-500 data-[hover=true]:text-red-500"
+          className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm text-red-500 data-[highlighted]:text-red-500"
         >
-          Log out
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
+          <span className="text-sm flex-grow font-zen">Log out</span>
+          <ExitIcon className="h-4 w-4" />
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

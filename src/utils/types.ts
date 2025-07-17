@@ -1,395 +1,105 @@
 import { Address } from 'viem';
-import { SupportedNetworks } from './networks';
 
-export type MarketPosition = {
-  state: {
-    supplyShares: string;
-    supplyAssets: string;
-    borrowShares: string;
-    borrowAssets: string;
-    collateral: string;
-  };
-  market: Market; // Now using the full Market type
-};
-
-export type MarketPositionWithEarnings = MarketPosition & {
-  earned: PositionEarnings;
-};
-
-export enum UserTxTypes {
-  MarketBorrow = 'MarketBorrow',
-  MarketLiquidation = 'MarketLiquidation',
-  MarketRepay = 'MarketRepay',
-  MarketSupply = 'MarketSupply',
-  MarketSupplyCollateral = 'MarketSupplyCollateral',
-  MarketWithdraw = 'MarketWithdraw',
-  MarketWithdrawCollateral = 'MarketWithdrawCollateral',
-}
-
-export type UserTransaction = {
-  hash: string;
-  timestamp: number;
-  type: UserTxTypes;
-  data: {
-    __typename: UserTxTypes;
-    shares: string;
-    assets: string;
-    market: {
-      uniqueKey: string;
-    };
-  };
-};
-
-export type WhitelistMarketResponse = {
-  mainnet: {
-    markets: {
-      label: string;
-      id: string;
-      loanToken: string;
-      collateralToken: string;
-      oracle: string;
-      irm: string;
-      lltv: string;
-    }[];
-  };
-};
-
-export type OracleFeedsInfo = {
-  baseFeedOneAddress: string;
-  baseFeedOneDescription: string | null;
-  baseFeedTwoAddress: string;
-  baseFeedTwoDescription: string | null;
-  quoteFeedOneAddress: string;
-  quoteFeedOneDescription: string | null;
-  quoteFeedTwoAddress: string;
-  quoteFeedTwoDescription: string | null;
-  baseVault: string;
-  baseVaultDescription: string | null;
-  baseVaultVendor: string | null;
-  quoteVault: string;
-  quoteVaultDescription: string | null;
-  quoteVaultVendor: string | null;
-  __typename: string;
-};
-
-export type MarketWarning = {
-  type: string;
-  level: string;
-  __typename: string;
-};
-
-export type WarningWithDetail = {
-  code: string;
-  description: string;
-  category: WarningCategory;
-  level: string;
-};
-
-export enum WarningCategory {
-  asset = 'asset',
-  oracle = 'oracle',
-  debt = 'debt',
-  general = 'general',
-}
-
+// Generic Web3 Types
 export type TokenInfo = {
   id: string;
   address: string;
   symbol: string;
   name: string;
   decimals: number;
+  img?: string;
 };
 
-// Common types
-type AssetType = {
-  id: string;
-  address: string;
-  chain_id: number;
+export type Transaction = {
+  hash: string;
+  timestamp: number;
+  from: Address;
+  to: Address;
+  value: string;
+  gasUsed: string;
+  gasPrice: string;
+  status: 'success' | 'failed';
 };
 
-export type RewardAmount = {
-  total: string;
-  claimable_now: string;
-  claimable_next: string;
-  claimed: string;
-};
-
-// Market Program Type
-export type MarketRewardType = {
-  // shared
-  type: 'market-reward';
-  asset: AssetType;
-  user: string;
-  // specific
-  for_borrow: RewardAmount | null;
-  for_collateral: RewardAmount | null;
-  for_supply: RewardAmount | null;
-  program: {
-    creator: string;
-    start: string;
-    end: string;
-    created_at: string;
-    blacklist: string[];
-    market_id: string;
-    asset: AssetType;
-  };
-};
-
-// Uniform Reward Type
-export type UniformRewardType = {
-  // shared
-  type: 'uniform-reward';
-  asset: AssetType;
-  user: string;
-  // specific
-  amount: RewardAmount;
-  program_id: string;
-};
-
-export type VaultRewardType = {
-  // shared
-  type: 'vault-reward';
-  asset: AssetType;
-  user: string;
-  // specific
-  program: VaultProgramType;
-  for_supply: RewardAmount | null;
-};
-
-export type VaultProgramType = {
-  type: 'vault-reward';
-  asset: AssetType;
-  vault: string;
-  chain_id: number;
-  rate_per_year: string;
-  distributor: AssetType;
-  creator: string;
-  blacklist: string[];
-  start: string;
-  end: string;
-  created_at: string;
-  id: string;
-};
-
-// Combined RewardResponseType
-export type RewardResponseType = MarketRewardType | UniformRewardType | VaultRewardType;
-
-export type AggregatedRewardType = {
-  asset: AssetType;
-  total: {
-    claimable: bigint;
-    pendingAmount: bigint;
-    claimed: bigint;
-  };
-  programs: ('vault-reward' | 'market-reward' | 'uniform-reward')[];
-};
-
-export type RebalanceAction = {
-  fromMarket: {
-    loanToken: string;
-    collateralToken: string;
-    oracle: string;
-    irm: string;
-    lltv: string;
-    uniqueKey: string;
-  };
-  toMarket: {
-    loanToken: string;
-    collateralToken: string;
-    oracle: string;
-    irm: string;
-    lltv: string;
-    uniqueKey: string;
-  };
-  amount: bigint;
-  isMax: boolean;
-  shares?: bigint;
-};
-
-export type PositionEarnings = {
-  lifetimeEarned: string;
-  last24hEarned: string | null;
-  last7dEarned: string | null;
-  last30dEarned: string | null;
-};
-
-export type GroupedPosition = {
-  loanAsset: string;
-  loanAssetAddress: string;
-  loanAssetDecimals: number;
+export type Balance = {
+  token: TokenInfo;
+  balance: string;
+  balanceUsd: number;
   chainId: number;
-  loanAssetSymbol: string;
-  totalSupply: number;
-  totalWeightedApy: number;
+};
 
-  earned?: PositionEarnings;
-
-  collaterals: {
-    address: string;
+export type NetworkInfo = {
+  id: number;
+  name: string;
+  rpcUrl: string;
+  explorerUrl: string;
+  nativeCurrency: {
+    name: string;
     symbol: string;
-    amount: number;
-  }[];
-  markets: MarketPositionWithEarnings[];
-  processedCollaterals: {
-    address: string;
-    symbol: string;
-    amount: number;
-    percentage: number;
-  }[];
-  allWarnings: WarningWithDetail[];
-};
-
-// Add these new types
-export type OracleFeed = {
-  address: string;
-  chain: {
-    id: number;
-  };
-  description: string | null;
-  id: string;
-  pair: string[] | null;
-  vendor: string | null;
-};
-
-export type MorphoChainlinkOracleData = {
-  baseFeedOne: OracleFeed | null;
-  baseFeedTwo: OracleFeed | null;
-  quoteFeedOne: OracleFeed | null;
-  quoteFeedTwo: OracleFeed | null;
-};
-
-// Update the Market type
-export type Market = {
-  id: string;
-  lltv: string;
-  uniqueKey: string;
-  irmAddress: string;
-  oracleAddress: string;
-  collateralPrice: string;
-  whitelisted: boolean;
-  morphoBlue: {
-    id: string;
-    address: string;
-    chain: {
-      id: number;
-    };
-  };
-  loanAsset: TokenInfo;
-  collateralAsset: TokenInfo;
-  state: {
-    borrowAssets: string;
-    supplyAssets: string;
-    borrowAssetsUsd: number;
-    supplyAssetsUsd: number;
-    borrowShares: string;
-    supplyShares: string;
-    liquidityAssets: string;
-    liquidityAssetsUsd: number;
-    collateralAssets: string;
-    collateralAssetsUsd: number | null;
-    utilization: number;
-    supplyApy: number;
-    borrowApy: number;
-    fee: number;
-    timestamp: number;
-    rateAtUTarget: number;
-  };
-
-  // whether we have USD price such has supplyUSD, borrowUSD, collateralUSD, etc. If not, use estimationP
-  hasUSDPrice: boolean;
-  warnings: MarketWarning[];
-  badDebt?: {
-    underlying: number;
-    usd: number;
-  };
-  realizedBadDebt?: {
-    underlying: number;
-    usd: number;
-  };
-
-  // appended by us
-  warningsWithDetail: WarningWithDetail[];
-  isProtectedByLiquidationBots: boolean;
-  isMonarchWhitelisted?: boolean;
-
-  oracle?: {
-    data: MorphoChainlinkOracleData;
+    decimals: number;
   };
 };
 
-export type TimeseriesDataPoint = {
-  x: number;
+export type UserProfile = {
+  address: Address;
+  ensName?: string;
+  avatar?: string;
+  balances: Balance[];
+  transactions: Transaction[];
+};
+
+// Generic API Response Types
+export type ApiResponse<T> = {
+  data: T;
+  success: boolean;
+  error?: string;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+};
+
+// Generic Chart/Data Types
+export type DataPoint = {
+  x: number | string;
   y: number;
 };
 
-export type TimeseriesOptions = {
-  startTimestamp: number;
-  endTimestamp: number;
-  interval: 'HOUR' | 'DAY' | 'WEEK' | 'MONTH';
+export type ChartData = {
+  label: string;
+  data: DataPoint[];
+  color?: string;
 };
 
-// Export MarketRates and MarketVolumes
-export type MarketRates = {
-  supplyApy: TimeseriesDataPoint[];
-  borrowApy: TimeseriesDataPoint[];
-  rateAtUTarget: TimeseriesDataPoint[];
-  utilization: TimeseriesDataPoint[];
+export type TimeRange = {
+  start: number;
+  end: number;
 };
 
-export type MarketVolumes = {
-  supplyAssetsUsd: TimeseriesDataPoint[];
-  borrowAssetsUsd: TimeseriesDataPoint[];
-  liquidityAssetsUsd: TimeseriesDataPoint[];
-  supplyAssets: TimeseriesDataPoint[];
-  borrowAssets: TimeseriesDataPoint[];
-  liquidityAssets: TimeseriesDataPoint[];
+// Generic Settings Types
+export type UserSettings = {
+  theme: 'light' | 'dark' | 'system';
+  notifications: boolean;
+  analytics: boolean;
+  language: string;
 };
 
-export type HistoricalData = {
-  historicalState: MarketRates & MarketVolumes;
+// Generic Error Types
+export type AppError = {
+  code: string;
+  message: string;
+  details?: any;
 };
 
-export type MarketHistoricalData = {
-  rates: MarketRates;
-  volumes: MarketVolumes;
-};
+// Generic Loading States
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
-export type MarketCap = {
-  marketId: string;
-  cap: string;
-};
-
-export type UserRebalancerInfo = {
-  rebalancer: Address;
-  marketCaps: MarketCap[];
-  transactions: {
-    transactionHash: string;
-  }[];
-  network: SupportedNetworks;
-};
-
-export type AgentMetadata = {
-  address: Address;
-  name: string;
-  strategyDescription: string;
-};
-
-// Define the comprehensive Market Activity Transaction type
-export type MarketActivityTransaction = {
-  type: 'MarketSupply' | 'MarketWithdraw' | 'MarketBorrow' | 'MarketRepay';
-  hash: string;
-  timestamp: number;
-  amount: string; // Unified field for assets/amount
-  userAddress: string; // Unified field for user address
-};
-
-// Type for Liquidation Transactions (Simplified based on original hook)
-export type MarketLiquidationTransaction = {
-  type: 'MarketLiquidation';
-  hash: string;
-  timestamp: number;
-  liquidator: string;
-  repaidAssets: string;
-  seizedAssets: string;
-  badDebtAssets: string;
+export type AsyncState<T> = {
+  data: T | null;
+  loading: LoadingState;
+  error: AppError | null;
 };
