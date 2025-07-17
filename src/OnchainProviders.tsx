@@ -18,9 +18,8 @@ if (!projectId) {
   throw new Error(providerErrMessage);
 }
 
-const wagmiConfig = createWagmiConfig(projectId);
-
 function OnchainProviders({ children }: Props) {
+  const wagmiConfig = createWagmiConfig(projectId);
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
