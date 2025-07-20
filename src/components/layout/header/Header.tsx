@@ -39,6 +39,8 @@ function Header({ ghost }: HeaderProps) {
       >
         <Menu />
       </header>
+      {/* Spacer div to prevent content from being hidden behind fixed header */}
+      <div className="h-[64px]" />
     </>
   );
 }

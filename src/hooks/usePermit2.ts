@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Address } from 'abitype';
+import { Address } from 'viem';
 import moment from 'moment';
 import { Chain } from 'viem/chains';
 import { useReadContract, useSignTypedData } from 'wagmi';
