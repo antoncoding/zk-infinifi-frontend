@@ -21,7 +21,7 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-4">
               <h2 className="text font-monospace text-secondary">Transaction Settings</h2>
 
-              <div className="bg-surface rounded p-6">
+              <div className="bg-card rounded p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <h3 className="text-lg font-medium text-primary">Use Gasless Approvals</h3>
@@ -46,20 +46,20 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-4 pt-4">
               <h2 className="text font-monospace text-secondary">Appearance</h2>
 
-              <div className="bg-surface rounded p-6">
+              <div className="bg-card rounded p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
-                    <h3 className="text-lg font-medium text-primary">Dark Mode</h3>
-                    <p className="text-sm text-secondary">
-                      Enable dark mode for a better viewing experience in low-light environments.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={theme === 'dark'}
-                    onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                  />
+                  <h3 className="text-lg font-medium text-primary">Dark Mode</h3>
+                  <p className="text-sm text-secondary">
+                    Enable dark mode for a better viewing experience in low-light environments.
+                  </p>
                 </div>
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                />
               </div>
+            </div>
             </div>
         </div>
       </Main>

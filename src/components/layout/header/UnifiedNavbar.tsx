@@ -89,8 +89,8 @@ export default function UnifiedNavbar() {
     <>
       {/* Mobile menu open */}
       {isMobileMenuOpen ? (
-        <nav className="sm:max-h-100 bg-surface flex flex-col gap-4 rounded p-2 backdrop-blur-2xl md:hidden">
-          <div className="flex flex-1 flex-grow items-center justify-between rounded bg-surface p-4 backdrop-blur-2xl mx-4">
+        <nav className="sm:max-h-100 bg-card flex flex-col gap-4 rounded p-2 backdrop-blur-2xl md:hidden">
+          <div className="flex flex-1 flex-grow items-center justify-between rounded bg-card p-4 backdrop-blur-2xl mx-4">
             <div className="flex grow items-center justify-between gap-4">
               <NavbarTitle />
               <button
@@ -144,7 +144,7 @@ export default function UnifiedNavbar() {
                       />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-surface min-w-[180px] rounded-sm border-none shadow-none">
+                  <DropdownMenuContent align="end" className="bg-card min-w-[180px] rounded-sm border-none shadow-none" avoidCollisions={true} sideOffset={8}>
                     <DropdownMenuItem
                       onClick={() => window.open('https://github.com/', '_blank')}
                       className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
@@ -192,7 +192,7 @@ export default function UnifiedNavbar() {
         </nav>
       ) : (
         // Desktop or mobile collapsed
-        <nav className="bg-surface flex h-full w-full items-center justify-between rounded px-4">
+        <nav className="bg-card flex h-full w-full items-center justify-between rounded px-4">
           <NavbarTitle />
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function UnifiedNavbar() {
                     />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-surface min-w-[180px] rounded-sm border-none shadow-none">
+                <DropdownMenuContent align="end" className="bg-card min-w-[180px] rounded-sm border-none shadow-none" avoidCollisions={true} sideOffset={8}>
                   <DropdownMenuItem
                     onClick={() => window.open('https://github.com/', '_blank')}
                     className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"

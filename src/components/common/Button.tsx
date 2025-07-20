@@ -12,13 +12,28 @@ interface CustomButtonProps extends Omit<React.ComponentProps<typeof ShadcnButto
 
 export const Button = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
   ({ className, variant = 'default', size = 'md', radius = 'base', fullWidth, isLoading, children, ...props }, ref) => {
-    const variantClasses = {
-      default: 'bg-surface hover:bg-surface/80 transition-all duration-200 ease-in-out',
-      cta: 'bg-primary text-primary-foreground hover:bg-primary/80 transition-all duration-200 ease-in-out',
-      secondary: 'bg-hovered text-foreground',
-      interactive: 'bg-hovered text-foreground hover:bg-primary hover:text-white transition-all duration-200 ease-in-out',
-      ghost: 'bg-transparent hover:bg-surface/5 transition-all duration-200 ease-in-out',
+    // Map custom variants to shadcn variants or create custom styles
+    const getVariantAndClasses = () => {
+      switch (variant) {
+        case 'default':
+          return { shadcnVariant: 'default' as const, customClasses: '' };
+        case 'cta':
+          return { shadcnVariant: 'default' as const, customClasses: '' };
+        case 'secondary':
+          return { shadcnVariant: 'secondary' as const, customClasses: '' };
+        case 'interactive':
+          return { 
+            shadcnVariant: 'secondary' as const, 
+            customClasses: 'hover:bg-primary hover:text-primary-foreground transition-all duration-200 ease-in-out' 
+          };
+        case 'ghost':
+          return { shadcnVariant: 'ghost' as const, customClasses: '' };
+        default:
+          return { shadcnVariant: 'default' as const, customClasses: '' };
+      }
     };
+
+    const { shadcnVariant, customClasses } = getVariantAndClasses();
 
     const sizeClasses = {
       sm: 'px-3 py-1.5 text-xs min-w-[64px] h-8',
@@ -37,12 +52,13 @@ export const Button = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
     return (
       <ShadcnButton
         ref={ref}
+        variant={shadcnVariant}
         className={cn(
-          variantClasses[variant],
           sizeClasses[size],
           radiusClasses[radius],
           fullWidthClass,
           loadingClass,
+          customClasses,
           className
         )}
         disabled={props.disabled || isLoading}

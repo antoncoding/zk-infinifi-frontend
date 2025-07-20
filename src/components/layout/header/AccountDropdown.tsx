@@ -50,7 +50,7 @@ export function AccountDropdown() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="bg-surface min-w-[200px] rounded-sm border-none shadow-none"
+        className="bg-card min-w-[200px] rounded-sm border-none shadow-none"
       >
         <DropdownMenuItem className="border-b border-primary/10 pb-4" disabled>
           <div className="flex w-full flex-col gap-2">

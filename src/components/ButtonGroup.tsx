@@ -25,7 +25,7 @@ const sizeClasses = {
 
 const variantStyles = {
   default: (isSelected: boolean) => [
-    isSelected ? 'bg-hovered hover:bg-surface z-10' : 'bg-surface hover:bg-hovered',
+    isSelected ? 'bg-hovered hover:bg-card z-10' : 'bg-card hover:bg-hovered',
     'shadow-sm',
   ],
   primary: (isSelected: boolean) => [
@@ -36,7 +36,7 @@ const variantStyles = {
           'border-primary/80',
         ]
       : [
-          'bg-surface hover:bg-surface/90',
+          'bg-card hover:bg-card/90',
           'hover:shadow-[0_2px_8px_-2px] hover:shadow-primary/20',
           'border-primary/60 hover:border-primary/80',
         ],

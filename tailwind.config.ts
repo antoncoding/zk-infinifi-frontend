@@ -8,6 +8,7 @@ const config: Config = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
   	container: {
@@ -30,7 +31,7 @@ const config: Config = {
   			'2CoffeeMd': '1fr 330px',
   			'2mint': '420px 1fr'
   		},
-  				colors: {
+  		colors: {
 			primary: {
 				DEFAULT: 'hsl(var(--primary))',
 				foreground: 'hsl(var(--primary-foreground))'
@@ -94,7 +95,7 @@ const config: Config = {
   		}
   	}
   },
-  darkMode: ['class', 'class'],
+  darkMode: 'class',
   plugins: [
     plugin(function ({ addBase }) {
       addBase({
@@ -103,8 +104,8 @@ const config: Config = {
         },
       });
     }),
-      require("tailwindcss-animate")
-],
+    require("tailwindcss-animate")
+  ],
 };
 
 export default config;
