@@ -37,7 +37,6 @@ export default function SettingsPage() {
                   <Switch
                     checked={usePermit2}
                     onCheckedChange={setUsePermit2}
-                    className="min-w-[64px]"
                   />
                 </div>
               </div>
@@ -58,7 +57,6 @@ export default function SettingsPage() {
                   <Switch
                     checked={theme === 'dark'}
                     onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                    className="min-w-[64px]"
                   />
                 </div>
               </div>
