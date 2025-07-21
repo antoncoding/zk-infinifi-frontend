@@ -15,7 +15,7 @@ export default function SearchOrConnect({ path }: { path: string }) {
   const [inputAddress, setInputAddress] = useState<string>('');
 
   return (
-    <div className="flex flex-col justify-between font-zen">
+    <div className="flex flex-col justify-between">
       <Header />
       <div className="container items-center justify-center gap-8 px-[5%]">
         <div className="flex justify-center py-14">
@@ -27,7 +27,7 @@ export default function SearchOrConnect({ path }: { path: string }) {
           {/* {show connect button or input} */}
           {address ? (
             <Link href={`/${path}/${address}`} className="no-underline">
-              <div className="flex font-zen opacity-70 transition-all duration-200 ease-in-out hover:scale-105 hover:opacity-100">
+              <div className="flex opacity-70 transition-all duration-200 ease-in-out hover:scale-105 hover:opacity-100">
                 <button type="button" className="text-roboto bg-card w-80 rounded-sm p-4 px-10 ">
                   View Account {address.slice(0, 8)}
                 </button>
@@ -39,7 +39,7 @@ export default function SearchOrConnect({ path }: { path: string }) {
             </Link>
           ) : (
             <div style={{ maxWidth: 250 }} className="flex justify-center">
-              <AccountConnect onConnectPath={path} />
+              <AccountConnect/>
             </div>
           )}
         </div>
@@ -52,7 +52,7 @@ export default function SearchOrConnect({ path }: { path: string }) {
 
         {/* Search Bar */}
         <div className="flex justify-center">
-          <div className="flex font-zen opacity-80 transition-all duration-200 ease-in-out hover:opacity-100">
+          <div className="flex opacity-80 transition-all duration-200 ease-in-out hover:opacity-100">
             <input
               className="bg-card w-80 p-4 focus:opacity-100"
               value={inputAddress}

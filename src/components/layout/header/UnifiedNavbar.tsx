@@ -39,7 +39,7 @@ function NavbarLink({
     <Link
       href={href}
       className={clsx(
-        'px-2 py-1 text-center font-zen text-base font-normal text-primary no-underline',
+        'px-2 py-1 text-center text-base font-normal text-primary no-underline',
         'relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-full after:bg-primary',
         'no-underline transition-all duration-200',
         isActive ? 'after:opacity-100' : 'after:opacity-0',
@@ -58,7 +58,7 @@ function NavbarTitle() {
       <Link
         href="/"
         passHref
-        className="text-center font-zen text-lg font-medium text-primary no-underline"
+        className="text-center text-lg font-medium text-primary no-underline"
         aria-label="Web3 Next.js Template"
       >
         Web3 Template
@@ -124,7 +124,7 @@ export default function UnifiedNavbar() {
                     <button
                       type="button"
                       className={clsx(
-                        'px-2 py-1 text-center font-zen text-base font-normal text-primary',
+                        'px-2 py-1 text-center text-base font-normal text-primary',
                         'border-none transition-all duration-200',
                         'inline-flex items-center gap-1',
                         'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0',
@@ -145,35 +145,35 @@ export default function UnifiedNavbar() {
                   <DropdownMenuContent align="end" className="bg-card min-w-[180px] rounded-sm border-none shadow-none" avoidCollisions={true} sideOffset={8}>
                     <DropdownMenuItem
                       onClick={() => window.open('https://github.com/', '_blank')}
-                      className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                      className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                     >
-                      <span className="text-sm text-primary flex-grow font-zen">Docs</span>
+                      <span className="text-sm text-primary flex-grow">Docs</span>
                       <RiBookLine className="h-4 w-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => window.open('https://discord.gg/', '_blank')}
-                      className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                      className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                     >
-                      <span className="text-sm text-primary flex-grow font-zen">Discord</span>
+                      <span className="text-sm text-primary flex-grow">Discord</span>
                       <RiDiscordFill className="h-4 w-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => window.open('https://github.com/', '_blank')}
-                      className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                      className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                     >
-                      <span className="text-sm text-primary flex-grow font-zen">GitHub</span>
+                      <span className="text-sm text-primary flex-grow">GitHub</span>
                       <RiGithubFill className="h-4 w-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={toggleTheme}
-                      className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                      className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                     >
-                      <span className="text-sm text-primary flex-grow font-zen">
+                      <span className="text-sm text-primary flex-grow">
                         {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
                       </span>
                       {mounted && (theme === 'dark' ? <LuSunMedium size={16} /> : <FaRegMoon size={14} />)}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm">
+                    <DropdownMenuItem className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm">
                       <Link href="/settings" className="text-sm text-primary no-underline flex-grow">
                         Settings
                       </Link>
@@ -200,7 +200,7 @@ export default function UnifiedNavbar() {
                   <button
                     type="button"
                     className={clsx(
-                      'px-2 py-1 text-center font-zen text-base font-normal text-primary',
+                      'px-2 py-1 text-center text-base font-normal text-primary',
                       'border-none transition-all duration-200',
                       'inline-flex items-center gap-1',
                       'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0',
@@ -221,35 +221,35 @@ export default function UnifiedNavbar() {
                 <DropdownMenuContent align="end" className="bg-card min-w-[180px] rounded-sm border-none shadow-none" avoidCollisions={true} sideOffset={8}>
                   <DropdownMenuItem
                     onClick={() => window.open('https://github.com/', '_blank')}
-                    className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                    className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                   >
-                    <span className="text-sm text-primary flex-grow font-zen">Docs</span>
+                    <span className="text-sm text-primary flex-grow">Docs</span>
                     <RiBookLine className="h-4 w-4" />
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => window.open('https://discord.gg/', '_blank')}
-                    className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                    className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                   >
-                    <span className="text-sm text-primary flex-grow font-zen">Discord</span>
+                    <span className="text-sm text-primary flex-grow">Discord</span>
                     <RiDiscordFill className="h-4 w-4" />
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => window.open('https://github.com/', '_blank')}
-                    className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                    className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                   >
-                    <span className="text-sm text-primary flex-grow font-zen">GitHub</span>
+                    <span className="text-sm text-primary flex-grow">GitHub</span>
                     <RiGithubFill className="h-4 w-4" />
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={toggleTheme}
-                    className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+                    className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
                   >
-                    <span className="text-sm text-primary flex-grow font-zen">
+                    <span className="text-sm text-primary flex-grow">
                       {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
                     </span>
                     {mounted && (theme === 'dark' ? <LuSunMedium size={16} /> : <FaRegMoon size={14} />)}
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm">
+                  <DropdownMenuItem className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm">
                     <Link href="/settings" className="text-sm text-primary no-underline flex-grow">
                       Settings
                     </Link>

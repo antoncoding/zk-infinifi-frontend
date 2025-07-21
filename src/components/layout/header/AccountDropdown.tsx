@@ -60,17 +60,17 @@ export function AccountDropdown() {
 
         <DropdownMenuItem
           onClick={handleCopyAddress}
-          className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+          className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
         >
-          <span className="text-sm text-primary flex-grow font-zen">Copy Address</span>
+          <span className="text-sm text-primary flex-grow">Copy Address</span>
           <CopyIcon className="h-4 w-4" />
         </DropdownMenuItem>
 
         <DropdownMenuItem
           onClick={() => window.open(getExplorerURL(address, chainId ?? 1), '_blank')}
-          className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm"
+          className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
         >
-          <span className="text-sm text-primary flex-grow font-zen">View on Explorer</span>
+          <span className="text-sm text-primary flex-grow">View on Explorer</span>
           <ExternalLinkIcon className="h-4 w-4" />
         </DropdownMenuItem>
 
@@ -78,9 +78,9 @@ export function AccountDropdown() {
 
         <DropdownMenuItem
           onClick={handleDisconnectWallet}
-          className="gap-4 px-4 py-2 rounded-none font-zen data-[highlighted]:bg-hovered rounded-sm text-red-500 data-[highlighted]:text-red-500"
+          className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm text-red-500 data-[highlighted]:text-red-500"
         >
-          <span className="text-sm flex-grow font-zen">Log out</span>
+          <span className="text-sm flex-grow">Log out</span>
           <ExitIcon className="h-4 w-4" />
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -28,7 +28,7 @@ initAnalytics();
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${zen.variable} ${inter.variable} ${monospace.variable}`}>
-      <body>
+      <body className={zen.className}>
         <ThemeProviders>
           <OnchainProviders>
             <ClientProviders>

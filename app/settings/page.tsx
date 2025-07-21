@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="font-zen">
+    <div>
       <Header />
       <Main>
           <h1 className="py-8 font-zen">Settings</h1>

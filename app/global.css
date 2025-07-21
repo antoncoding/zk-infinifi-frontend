@@ -40,7 +40,6 @@ body {
   height: auto;
   min-height: 100%;
   margin: 0;
-  font-family: Inter, sans-serif;
   overflow-x: hidden;
   overflow-y: scroll; /* Ensure consistent scrollbar */
   -webkit-text-size-adjust: 100%;
