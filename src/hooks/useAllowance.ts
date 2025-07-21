@@ -72,7 +72,7 @@ export function useAllowance({
     });
   }, [user, spender, token, sendTransactionAsync, chainIdFromArgumentOrConnectedWallet]);
 
-  const allowance = data ? data : BigInt(0);
+  const allowance = data ?? BigInt(0);
 
   const isLoadingAllowance = data === undefined;
 

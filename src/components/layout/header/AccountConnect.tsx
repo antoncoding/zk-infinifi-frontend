@@ -7,7 +7,7 @@ import { AccountDropdown } from './AccountDropdown';
  *
  * @returns
  */
-function AccountConnect({ onConnectPath: _onConnectPath }: { onConnectPath?: string }) {
+function AccountConnect() {
   return (
     <ConnectButton.Custom>
       {({ account, chain, openConnectModal, authenticationStatus, mounted }) => {

@@ -19,7 +19,7 @@ export function Avatar({ address, size = 30, rounded = true }: AvatarProps) {
       try {
         const response = await fetch(effigyMockurl, { method: 'HEAD' });
         setUseEffigy(response.ok);
-      } catch (_error) {
+      } catch {
         setUseEffigy(false);
       }
     };

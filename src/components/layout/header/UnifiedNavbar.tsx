@@ -17,7 +17,6 @@ import { FaRegMoon } from 'react-icons/fa';
 import { FiSettings } from 'react-icons/fi';
 import { LuSunMedium } from 'react-icons/lu';
 import { RiBookLine, RiDiscordFill, RiGithubFill } from 'react-icons/ri';
-import { useAccount } from 'wagmi';
 import AccountConnect from './AccountConnect';
 
 import logo from '../../../../public/icon.png';
@@ -70,7 +69,6 @@ function NavbarTitle() {
 
 export default function UnifiedNavbar() {
   const { theme, setTheme } = useTheme();
-  const { address: _address } = useAccount();
   const [mounted, setMounted] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -186,7 +184,7 @@ export default function UnifiedNavbar() {
               </li>
             </ul>
             <div className="mx-2 mt-4">
-              <AccountConnect onConnectPath="demo" />
+              <AccountConnect />
             </div>
           </div>
         </nav>

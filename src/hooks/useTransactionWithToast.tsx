@@ -58,7 +58,7 @@ export function useTransactionWithToast({
         },
       );
     }
-  }, [isConfirming, pendingText, pendingDescription, toastId, onClick]);
+  }, [isConfirming, pendingText, pendingDescription, toastId, onClick, hash]);
 
   useEffect(() => {
     if (isConfirmed) {
@@ -91,6 +91,7 @@ export function useTransactionWithToast({
       });
     }
   }, [
+    hash,
     isConfirmed,
     txError,
     successText,
@@ -99,8 +100,6 @@ export function useTransactionWithToast({
     toastId,
     onClick,
     onSuccess,
-    toast,
-    hash,
   ]);
 
   return { sendTransactionAsync, sendTransaction, isConfirming, isConfirmed };

@@ -20,9 +20,9 @@ type TokenProviderContextType = {
 const TokenProviderContext = createContext<TokenProviderContextType | null>(null);
 
 export function TokenProvider({ children }: { children: React.ReactNode }) {
-  const findToken = (_address: string, _chainId: number): Token | null => {
-    // This is a placeholder implementation
-    // In a real app, this would fetch from an API or use a token list
+  const findToken = (): Token | null => {
+    console.log('Mock findToken');
+
     return null;
   };
 
