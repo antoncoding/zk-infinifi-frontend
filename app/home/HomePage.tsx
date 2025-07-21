@@ -7,7 +7,7 @@ import { Button } from '@/components/common/Button';
 import Header from '@/components/layout/header/Header';
 
 export default function HomePage() {
-  const { address } = useAccount();
+  const { address: _address } = useAccount();
 
   return (
     <div className="bg-main flex min-h-screen flex-col">

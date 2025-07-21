@@ -20,7 +20,7 @@ import { RiBookLine, RiDiscordFill, RiGithubFill } from 'react-icons/ri';
 import { useAccount } from 'wagmi';
 import AccountConnect from './AccountConnect';
 
-const logo = require('../../../../public/icon.png');
+import logo from '../../../../public/icon.png';
 
 function NavbarLink({
   children,
@@ -70,7 +70,7 @@ function NavbarTitle() {
 
 export default function UnifiedNavbar() {
   const { theme, setTheme } = useTheme();
-  const { address } = useAccount();
+  const { address: _address } = useAccount();
   const [mounted, setMounted] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);

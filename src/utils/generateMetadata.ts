@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
-interface GenerateMetadataProps {
+type GenerateMetadataProps = {
   title?: string;
   description?: string;
   url?: string;
   image?: string;
-}
+};
 
 export function generateMetadata({
   title = 'Web3 Next.js Template',

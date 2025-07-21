@@ -21,7 +21,7 @@ export function useERC20Approval({
 
   const chainIdToUse = chainId ?? currentChain;
 
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance, error } = useReadContract({
     address: token,
     abi: erc20Abi,
     functionName: 'allowance',

@@ -2,10 +2,10 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 
-interface AppContextType {
+type AppContextType = {
   // Add any app-wide state or functions here
   version: string;
-}
+};
 
 const AppContext = createContext<AppContextType | null>(null);
 

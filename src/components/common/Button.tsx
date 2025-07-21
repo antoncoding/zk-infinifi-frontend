@@ -2,13 +2,13 @@ import React from 'react';
 import { Button as ShadcnButton } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface CustomButtonProps extends Omit<React.ComponentProps<typeof ShadcnButton>, 'variant' | 'size'> {
+type CustomButtonProps = Omit<React.ComponentProps<typeof ShadcnButton>, 'variant' | 'size'> & {
   variant?: 'default' | 'cta' | 'secondary' | 'interactive' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   radius?: 'none' | 'base';
   fullWidth?: boolean;
   isLoading?: boolean;
-}
+};
 
 export const Button = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
   ({ className, variant = 'default', size = 'md', radius = 'base', fullWidth, isLoading, children, ...props }, ref) => {
@@ -61,7 +61,7 @@ export const Button = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
           customClasses,
           className
         )}
-        disabled={props.disabled || isLoading}
+        disabled={props.disabled ?? isLoading}
         {...props}
       >
         {isLoading && (

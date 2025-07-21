@@ -88,7 +88,7 @@ export function useUserBalances() {
     } finally {
       setLoading(false);
     }
-  }, [address, fetchBalances]);
+  }, [address, fetchBalances, findToken]);
 
   useEffect(() => {
     void fetchAllBalances();

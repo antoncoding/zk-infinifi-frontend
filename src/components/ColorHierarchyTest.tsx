@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './ui/button';
 
-export const ColorHierarchyTest: React.FC = () => {
+export function ColorHierarchyTest() {
   return (
     <div className="p-8 space-y-8">
       <h1 className="text-3xl font-bold">Color Hierarchy Test</h1>

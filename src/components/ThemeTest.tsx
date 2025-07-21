@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from './ui/button';
 import { Badge } from './common/Badge';
 
-export const ThemeTest: React.FC = () => {
+export function ThemeTest() {
   return (
     <div className="p-8 space-y-6">
       <h1 className="text-3xl font-bold">Theme System Test</h1>

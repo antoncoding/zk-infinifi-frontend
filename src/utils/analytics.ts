@@ -16,7 +16,7 @@ let perfumeLib: {
 };
 
 function initWebVitals() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
   perfumeLib = require('perfume.js');
   perfumeLib.initPerfume({
     analyticsTracker: ({ metricName, data }) => {
@@ -38,7 +38,7 @@ export const initAnalytics = function () {
 };
 
 export const markStep = function (stepName: string) {
-  if (isClient() && perfumeLib && perfumeLib.markStep) {
+  if (isClient() && perfumeLib?.markStep) {
     perfumeLib.end('perf.' + stepName);
     perfumeLib.start('perf.' + stepName);
   }

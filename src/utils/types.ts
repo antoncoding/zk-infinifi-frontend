@@ -92,7 +92,7 @@ export type UserSettings = {
 export type AppError = {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 };
 
 // Generic Loading States

@@ -15,9 +15,7 @@ export const SUPPORTED_CHAINS: Record<Environment, [Chain, ...Chain[]]> = {
  * @param env
  */
 export function getChainsForEnvironment(env?: Environment) {
-  if (!env) {
-    env = getCurrentEnvironment();
-  }
+  env ??= getCurrentEnvironment();
   return SUPPORTED_CHAINS[env];
 }
 

@@ -8,7 +8,8 @@ export const supportsMorphoApi = (network: SupportedNetworks): boolean => {
     case SupportedNetworks.Mainnet:
     case SupportedNetworks.Base:
       return true;
-    default:
+    case SupportedNetworks.Polygon:
+    case SupportedNetworks.Unichain:
       return false;
   }
 };

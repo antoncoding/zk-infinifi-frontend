@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Address } from 'abitype';
+import { Address } from 'viem';
 import { encodeFunctionData, erc20Abi, maxUint256, zeroAddress } from 'viem';
 import { Chain } from 'viem/chains';
 import { useAccount, useReadContract } from 'wagmi';
