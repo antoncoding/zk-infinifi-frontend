@@ -4,30 +4,36 @@ A modern web3 template built with Next.js, TypeScript, Tailwind CSS, and shadcn/
 
 ## Quick Start
 
-1. Clone and install:
+1. **Clone and install:**
 ```bash
 git clone https://github.com/your-username/web3-next-template.git
 cd web3-next-template
 pnpm install
 ```
 
-2. Set up environment:
+2. **Set up environment:**
 ```bash
 cp .env.example .env.local
-# Add your NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+```
+Add your environment variables:
+```bash
+NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_walletconnect_project_id
+NEXT_PUBLIC_ALCHEMY_API_KEY=your_alchemy_api_key
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com  # Optional: for production
 ```
 
-3. Run development server:
+3. **Create Open Graph image (optional):**
+```bash
+# Add a 1200x630 pixel image for social media cards
+public/og-image.png
+```
+
+4. **Run development server:**
 ```bash
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the result.
-
-## 🎨 Customization
-
-- **[Theme Guide](./THEME_GUIDE.md)** - Change colors and fonts
-- **[Styling Guide](./STYLING_GUIDE.md)** - Use components and styling patterns
 
 ## Features
 
@@ -38,22 +44,10 @@ Open [http://localhost:3000](http://localhost:3000) to see the result.
 - 📱 Responsive design
 - 🔧 TypeScript
 
-## Project Structure
+## Customization
 
-```
-├── app/                    # Next.js App Router pages
-│   └── global.css         # Theme variables & global styles
-├── src/
-│   ├── components/         # React components
-│   │   ├── ui/            # shadcn/ui components
-│   │   └── common/        # Custom components
-│   ├── hooks/             # Custom hooks
-│   ├── utils/             # Utilities
-│   └── store/             # Wagmi config
-├── THEME_GUIDE.md         # Theme customization
-├── STYLING_GUIDE.md       # Component usage guide
-└── tailwind.config.ts     # Tailwind + shadcn/ui config
-```
+- **[Theme Guide](./THEME_GUIDE.md)** - Change colors and fonts
+- **[Styling Guide](./STYLING_GUIDE.md)** - Use components and styling patterns
 
 ## License
 
