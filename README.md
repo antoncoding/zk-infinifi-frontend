@@ -2,15 +2,6 @@
 
 A modern web3 template built with Next.js, TypeScript, Tailwind CSS, and shadcn/ui.
 
-## Features
-
-- ⚡ Next.js 14 with App Router
-- 🎨 **Tailwind CSS & shadcn/ui** - Unified theming system
-- 🔗 Wagmi for Ethereum interactions
-- 🌙 Dark/Light mode support
-- 📱 Responsive design
-- 🔧 TypeScript
-
 ## Quick Start
 
 1. Clone and install:
@@ -33,37 +24,19 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-## 🎨 Theming & Styling
+## 🎨 Customization
 
-This project uses a **unified theming system** that works seamlessly with both Tailwind CSS and shadcn/ui components.
+- **[Theme Guide](./THEME_GUIDE.md)** - Change colors and fonts
+- **[Styling Guide](./STYLING_GUIDE.md)** - Use components and styling patterns
 
-### Quick Theme Customization
+## Features
 
-To change the primary color, edit `app/global.css`:
-
-```css
-:root {
-  --primary: 220 100% 25%; /* Change this to your brand color */
-}
-```
-
-### 📚 Documentation
-
-- **[Theme System Guide](./THEME_GUIDE.md)** - Complete theming documentation
-- **[Styling Guide](./STYLING_GUIDE.md)** - shadcn/ui component usage and best practices
-
-### 🧪 Test Components
-
-Use these components to verify your theme:
-
-```tsx
-import { ThemeTest } from './src/components/ThemeTest';
-import { ColorHierarchyTest } from './src/components/ColorHierarchyTest';
-
-// Add to any page to test
-<ThemeTest />
-<ColorHierarchyTest />
-```
+- ⚡ Next.js 14 with App Router
+- 🎨 Tailwind CSS & shadcn/ui
+- 🔗 Wagmi for Ethereum interactions
+- 🌙 Dark/Light mode support
+- 📱 Responsive design
+- 🔧 TypeScript
 
 ## Project Structure
 
@@ -77,8 +50,8 @@ import { ColorHierarchyTest } from './src/components/ColorHierarchyTest';
 │   ├── hooks/             # Custom hooks
 │   ├── utils/             # Utilities
 │   └── store/             # Wagmi config
-├── THEME_GUIDE.md         # Complete theming documentation
-├── STYLING_GUIDE.md       # shadcn/ui styling guide
+├── THEME_GUIDE.md         # Theme customization
+├── STYLING_GUIDE.md       # Component usage guide
 └── tailwind.config.ts     # Tailwind + shadcn/ui config
 ```
 
