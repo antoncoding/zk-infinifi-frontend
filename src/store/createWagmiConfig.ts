@@ -47,7 +47,7 @@ export function createWagmiConfig(projectId: string) {
   );
 
   return createConfig({
-    ssr: true,
+    ssr: false,
     chains: getChainsForEnvironment(),
     transports: {
       [mainnet.id]: http(rpcMainnet),
