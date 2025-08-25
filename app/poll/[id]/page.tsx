@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { getPollById } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import Header from '@/components/layout/header/Header';
-import { Button } from '@/components/common/Button';
+import { Button, AddressBadge } from '@/components/common';
 import Link from 'next/link';
 
 function PollInfoBox({ title, children, className = '' }: { 
@@ -26,6 +26,15 @@ function InfoItem({ label, value }: { label: string; value: string | bigint | nu
     <div className="flex justify-between">
       <span className="text-sm text-gray-600">{label}:</span>
       <span className="text-sm font-medium text-gray-900">{String(value)}</span>
+    </div>
+  );
+}
+
+function AddressInfoItem({ label, address }: { label: string; address: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-sm text-gray-600">{label}:</span>
+      <AddressBadge address={address as `0x${string}`} />
     </div>
   );
 }
@@ -76,9 +85,6 @@ export default function PollDetailPage() {
     return new Date(Number(timestamp) * 1000).toLocaleString();
   };
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
 
   return (
     <div className="bg-main flex min-h-screen flex-col">
@@ -87,7 +93,7 @@ export default function PollDetailPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {pollConfig.name || `Poll #${pollId}`}
+              {pollConfig.name ?? `Poll #${pollId}`}
             </h1>
             <p className="mt-2 text-gray-600">Poll ID: {pollId}</p>
           </div>
@@ -122,19 +128,19 @@ export default function PollDetailPage() {
 
             {/* Contract Addresses */}
             <PollInfoBox title="Contract Addresses" className="md:col-span-2 lg:col-span-1">
-              <InfoItem label="Poll Contract" value={formatAddress(pollConfig.pollContract)} />
-              <InfoItem label="Message Processor" value={formatAddress(pollConfig.messageProcessor)} />
-              <InfoItem label="Tally Contract" value={formatAddress(pollConfig.tally)} />
+              <AddressInfoItem label="Poll Contract" address={pollConfig.pollContract} />
+              <AddressInfoItem label="Message Processor" address={pollConfig.messageProcessor} />
+              <AddressInfoItem label="Tally Contract" address={pollConfig.tally} />
             </PollInfoBox>
 
             {/* External Contracts */}
             {extContracts && (
               <PollInfoBox title="External Contracts" className="md:col-span-2">
-                <InfoItem label="MACI" value={formatAddress(extContracts.maci)} />
-                <InfoItem label="Verifier" value={formatAddress(extContracts.verifier)} />
-                <InfoItem label="Keys Registry" value={formatAddress(extContracts.verifyingKeysRegistry)} />
-                <InfoItem label="Policy" value={formatAddress(extContracts.policy)} />
-                <InfoItem label="Voice Credit Proxy" value={formatAddress(extContracts.initialVoiceCreditProxy)} />
+                <AddressInfoItem label="MACI" address={extContracts.maci} />
+                <AddressInfoItem label="Verifier" address={extContracts.verifier} />
+                <AddressInfoItem label="Keys Registry" address={extContracts.verifyingKeysRegistry} />
+                <AddressInfoItem label="Policy" address={extContracts.policy} />
+                <AddressInfoItem label="Voice Credit Proxy" address={extContracts.initialVoiceCreditProxy} />
               </PollInfoBox>
             )}
 

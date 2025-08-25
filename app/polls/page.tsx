@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { HARDCODED_POLLS, type PollConfig } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import Header from '@/components/layout/header/Header';
-import { Button } from '@/components/common/Button';
+import { Button, AddressBadge } from '@/components/common';
 
 function PollCard({ poll }: { poll: PollConfig }) {
   const { 
@@ -20,9 +20,6 @@ function PollCard({ poll }: { poll: PollConfig }) {
     refetchInterval: 10000 
   });
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
 
   const formatTimestamp = (timestamp: bigint) => {
     if (timestamp === BigInt(0)) return 'Not set';
@@ -62,15 +59,15 @@ function PollCard({ poll }: { poll: PollConfig }) {
       <div className="mb-4 space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Poll Contract:</span>
-          <span className="font-mono">{formatAddress(poll.pollContract)}</span>
+          <AddressBadge address={poll.pollContract} />
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Message Processor:</span>
-          <span className="font-mono">{formatAddress(poll.messageProcessor)}</span>
+          <AddressBadge address={poll.messageProcessor} />
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Tally Contract:</span>
-          <span className="font-mono">{formatAddress(poll.tally)}</span>
+          <AddressBadge address={poll.tally} />
         </div>
       </div>
 
