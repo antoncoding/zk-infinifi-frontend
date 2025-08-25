@@ -16,7 +16,7 @@ import { useTheme } from 'next-themes';
 import { FaRegMoon } from 'react-icons/fa';
 import { FiSettings } from 'react-icons/fi';
 import { LuSunMedium } from 'react-icons/lu';
-import { RiBookLine, RiDiscordFill, RiGithubFill } from 'react-icons/ri';
+import { RiDiscordFill, RiGithubFill } from 'react-icons/ri';
 import AccountConnect from './AccountConnect';
 
 import logo from '../../../../public/icon.png';
@@ -59,9 +59,9 @@ function NavbarTitle() {
         href="/"
         passHref
         className="text-center text-lg font-medium text-primary no-underline"
-        aria-label="Web3 Next.js Template"
+        aria-label="MACI"
       >
-        Web3 Template
+        MACI
       </Link>
     </div>
   );
@@ -109,13 +109,8 @@ export default function UnifiedNavbar() {
                 </NavbarLink>
               </li>
               <li className="flex">
-                <NavbarLink href="/demo" matchKey="/demo">
-                  <p className="text-base opacity-80 hover:opacity-100">Demo</p>
-                </NavbarLink>
-              </li>
-              <li className="flex">
-                <NavbarLink href="/docs" matchKey="/docs">
-                  <p className="text-base opacity-80 hover:opacity-100">Documentation</p>
+                <NavbarLink href="/polls" matchKey="/polls">
+                  <p className="text-base opacity-80 hover:opacity-100">Polls</p>
                 </NavbarLink>
               </li>
               <li className="flex">
@@ -143,13 +138,6 @@ export default function UnifiedNavbar() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-card min-w-[180px] rounded-sm border-none shadow-none" avoidCollisions={true} sideOffset={8}>
-                    <DropdownMenuItem
-                      onClick={() => window.open('https://github.com/', '_blank')}
-                      className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
-                    >
-                      <span className="text-sm text-primary flex-grow">Docs</span>
-                      <RiBookLine className="h-4 w-4" />
-                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => window.open('https://discord.gg/', '_blank')}
                       className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
@@ -195,6 +183,7 @@ export default function UnifiedNavbar() {
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <NavbarLink href="/">Home</NavbarLink>
+              <NavbarLink href="/polls" matchKey="/polls">Polls</NavbarLink>
               <DropdownMenu open={isMoreOpen} onOpenChange={setIsMoreOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -219,13 +208,6 @@ export default function UnifiedNavbar() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-card min-w-[180px] rounded-sm border-none shadow-none" avoidCollisions={true} sideOffset={8}>
-                  <DropdownMenuItem
-                    onClick={() => window.open('https://github.com/', '_blank')}
-                    className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"
-                  >
-                    <span className="text-sm text-primary flex-grow">Docs</span>
-                    <RiBookLine className="h-4 w-4" />
-                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => window.open('https://discord.gg/', '_blank')}
                     className="gap-4 px-4 py-2 rounded-none data-[highlighted]:bg-hovered rounded-sm"

@@ -4,7 +4,7 @@ import { ReactNode, useMemo } from 'react';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { base, mainnet, polygon, unichain } from 'wagmi/chains';
+import { baseSepolia, mainnet } from 'wagmi/chains';
 import { createWagmiConfig } from '@/store/createWagmiConfig';
 import { getChainsForEnvironment } from '@/store/supportedChains';
 
@@ -27,12 +27,10 @@ function OnchainProviders({ children }: Props) {
       // Server-side: minimal config without WalletConnect to avoid indexedDB
       return createConfig({
         ssr: false,
-        chains: getChainsForEnvironment(),
+        chains: [mainnet, baseSepolia],
         transports: {
           [mainnet.id]: http(`https://eth-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
-          [base.id]: http(`https://base-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
-          [polygon.id]: http(`https://polygon-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
-          [unichain.id]: http(`https://unichain-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
+          [baseSepolia.id]: http(`https://base-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`),
         },
         connectors: [], // No connectors on server-side
       });

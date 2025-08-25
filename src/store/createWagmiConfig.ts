@@ -10,15 +10,13 @@ import {
   ledgerWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 import { createConfig, http } from 'wagmi';
-import { base, mainnet, polygon, unichain } from 'wagmi/chains';
+import { base, baseSepolia, mainnet, polygon, unichain } from 'wagmi/chains';
 import { getChainsForEnvironment } from './supportedChains';
 
 const alchemyKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
 
 const rpcMainnet = `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-const rpcBase = `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-const rpcPolygon = `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-const rpcUnichain = `https://unichain-mainnet.g.alchemy.com/v2/${alchemyKey}`;
+const rpcBaseSepolia = `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
 
 export function createWagmiConfig(projectId: string) {
   const connectors = connectorsForWallets(
@@ -51,9 +49,7 @@ export function createWagmiConfig(projectId: string) {
     chains: getChainsForEnvironment(),
     transports: {
       [mainnet.id]: http(rpcMainnet),
-      [base.id]: http(rpcBase),
-      [polygon.id]: http(rpcPolygon),
-      [unichain.id]: http(rpcUnichain),
+      [baseSepolia.id]: http(rpcBaseSepolia),
     },
     connectors: [
       ...connectors,
