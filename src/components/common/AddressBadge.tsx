@@ -27,7 +27,7 @@ export function AddressBadge({
     <button
       type="button"
       onClick={handleClick}
-      className={`inline-flex items-center rounded bg-gray-100 px-2 py-1 text-xs font-mono text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${className}`}
+      className={`inline-flex items-center rounded bg-muted px-2 py-1 text-xs font-mono text-muted-foreground border transition-colors hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 ${className}`}
       title={`View ${address} on explorer`}
     >
       {formatAddress(address)}

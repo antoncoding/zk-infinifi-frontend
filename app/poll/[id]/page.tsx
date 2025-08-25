@@ -14,8 +14,8 @@ function PollInfoBox({ title, children, className = '' }: {
   className?: string; 
 }) {
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-6 shadow-sm ${className}`}>
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">{title}</h3>
+    <div className={`rounded-lg border bg-secondary p-6 shadow-sm ${className}`}>
+      <h3 className="mb-4 text-lg font-semibold text-secondary-foreground">{title}</h3>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -24,8 +24,8 @@ function PollInfoBox({ title, children, className = '' }: {
 function InfoItem({ label, value }: { label: string; value: string | bigint | number }) {
   return (
     <div className="flex justify-between">
-      <span className="text-sm text-gray-600">{label}:</span>
-      <span className="text-sm font-medium text-gray-900">{String(value)}</span>
+      <span className="text-sm text-muted-foreground">{label}:</span>
+      <span className="text-sm font-medium text-secondary-foreground">{String(value)}</span>
     </div>
   );
 }
@@ -33,7 +33,7 @@ function InfoItem({ label, value }: { label: string; value: string | bigint | nu
 function AddressInfoItem({ label, address }: { label: string; address: string }) {
   return (
     <div className="flex justify-between">
-      <span className="text-sm text-gray-600">{label}:</span>
+      <span className="text-sm text-muted-foreground">{label}:</span>
       <AddressBadge address={address as `0x${string}`} />
     </div>
   );
@@ -69,8 +69,8 @@ export default function PollDetailPage() {
         <Header />
         <main className="container mx-auto flex flex-1 flex-col items-center justify-center">
           <div className="text-center">
-            <h1 className="mb-4 text-2xl font-bold text-gray-900">Poll Not Found</h1>
-            <p className="mb-6 text-gray-600">The poll with ID "{pollId}" was not found.</p>
+            <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">Poll Not Found</h1>
+            <p className="mb-6 text-gray-600 dark:text-gray-400">The poll with ID "{pollId}" was not found.</p>
             <Link href="/polls">
               <Button>Back to Polls</Button>
             </Link>
@@ -92,10 +92,10 @@ export default function PollDetailPage() {
       <main className="container mx-auto flex-1 px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {pollConfig.name ?? `Poll #${pollId}`}
             </h1>
-            <p className="mt-2 text-gray-600">Poll ID: {pollId}</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Poll ID: {pollId}</p>
           </div>
           <Link href="/polls">
             <Button variant="secondary">Back to Polls</Button>
@@ -105,7 +105,7 @@ export default function PollDetailPage() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span className="ml-3 text-gray-600">Loading poll data...</span>
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Loading poll data...</span>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
