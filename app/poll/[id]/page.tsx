@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { getPollById } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge } from '@/components/common';
+import { Button, AddressBadge, KeyBadge } from '@/components/common';
 import Link from 'next/link';
 
 function PollInfoBox({ title, children, className = '' }: { 
@@ -147,8 +147,12 @@ export default function PollDetailPage() {
             {/* Coordinator */}
             {coordinatorPublicKey && (
               <PollInfoBox title="Coordinator Public Key" className="lg:col-span-1">
-                <InfoItem label="X Coordinate" value={coordinatorPublicKey.x} />
-                <InfoItem label="Y Coordinate" value={coordinatorPublicKey.y ?? 0} />
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Key:</span>
+                  <div className="min-w-0 flex-1 text-right">
+                    <KeyBadge className="max-w-full" value={coordinatorPublicKey.serialize()} />
+                  </div>
+                </div>
               </PollInfoBox>
             )}
           </div>

@@ -15,9 +15,9 @@ export const HARDCODED_POLLS: PollConfig[] = [
   {
     id: '1',
     name: 'Test Poll #1',
-    pollContract: '0x437cDCd909561598966EEca21Cc12F22096a78d1',
-    messageProcessor: '0x2B24b811B8d59625b8e93Fd780050dA04B6b9DE1',
-    tally: '0x5855aC0097F0ED54Aa0E93171A558064024E4FA9',
+    pollContract: '0xca2Ce74874Ce5240F400D51d03EBa35FEB102168',
+    messageProcessor: '0x5ee73c83399Efc2576D16bc84b1a91bEd6bc4d21',
+    tally: '0x10E4FCec989FBfDbffeC8545F543620e840d75c1',
   },
 ];
 

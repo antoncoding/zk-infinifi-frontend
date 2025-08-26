@@ -2,6 +2,8 @@ import { Address } from 'viem';
 import { useReadContract } from 'wagmi';
 import { poolAbi } from '@/abis/poll';
 import { SupportedNetworks } from '@/utils/networks';
+import { useMemo } from 'react';
+import { IJsonPublicKey, PubKey } from '@maci-protocol/domainobjs';
 
 type ExtContracts = {
   maci: Address;
@@ -34,7 +36,7 @@ type PollHookResult = {
   stateMerged: boolean;
 
   // Coordinator
-  coordinatorPublicKey: CoordinatorPublicKey | undefined;
+  coordinatorPublicKey: PubKey | undefined;
 
   // External contracts
   extContracts: ExtContracts | undefined;
@@ -179,7 +181,7 @@ export function usePoll({
     chainId,
   });
 
-  const { data: coordinatorPublicKey } = useReadContract({
+  const { data: coordinatorPublicKeys } = useReadContract({
     abi: poolAbi,
     functionName: 'coordinatorPublicKey',
     address,
@@ -189,7 +191,7 @@ export function usePoll({
     },
     chainId,
   });
-
+ 
   const rawExtContracts = extContracts as readonly Address[] | undefined;
   const mappedExtContracts: ExtContracts | undefined = rawExtContracts
     ? {
@@ -221,7 +223,7 @@ export function usePoll({
     stateMerged: ((stateMerged ?? false) as boolean),
 
     // Coordinator
-    coordinatorPublicKey: (coordinatorPublicKey as CoordinatorPublicKey | undefined),
+    coordinatorPublicKey: coordinatorPublicKeys ? new PubKey(coordinatorPublicKeys) : undefined,
 
     // External contracts
     extContracts: mappedExtContracts,
