@@ -4,3 +4,5 @@ export * from './KeyBadge';
 export * from './JoinAndVoteModal';
 export * from './ErrorDisplay';
 export * from './InfoDisplay';
+export * from './Badge';
+export * from './PollStatusBadge';

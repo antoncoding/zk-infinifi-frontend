@@ -6,7 +6,8 @@
       "Bash(mkdir:*)",
       "Bash(npm run lint)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(pnpm dev:*)"
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm add:*)"
     ],
     "deny": []
   }

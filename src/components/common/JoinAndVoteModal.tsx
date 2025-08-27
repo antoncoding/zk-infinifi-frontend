@@ -6,7 +6,7 @@ import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { InfoDisplay } from '@/components/common/InfoDisplay';
 import { useAccount } from 'wagmi';
 import { mockDownloadArtifacts, mockSignUpToPoll, getPollFromSubgraph, hasUserJoinedPoll } from '@/lib/maci';
-import { getPollById } from '@/config/poll';
+import { getMaciAddress, getPollById } from '@/config/poll';
 import { 
   ModalStateData, 
   ModalAction, 
@@ -236,7 +236,7 @@ export function JoinAndVoteModal({ isOpen, onClose, pollId, pollName }: JoinAndV
         async () => {
           // Generate proof and join the poll
           const signUpData = await mockSignUpToPoll({
-            maciAddress: pollConfig.maci,
+            maciAddress: getMaciAddress(),
             pollId: BigInt(pollId),
           });
 

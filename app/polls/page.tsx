@@ -2,18 +2,20 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { HARDCODED_POLLS, type PollConfig } from '@/config/poll';
+import { HARDCODED_POLLS, type Poll } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge } from '@/components/common';
+import { Button, AddressBadge, PollStatusBadge } from '@/components/common';
+import { formatPollStatus, getPollStatus } from '@/utils/timeFormat';
 
-function PollCard({ poll }: { poll: PollConfig }) {
+function PollCard({ poll }: { poll: Poll }) {
   const { 
     startDate,
     endDate,
     totalSignups,
     maxSignups,
     initialized,
+    stateMerged,
     isLoading
   } = usePoll({ 
     address: poll.pollContract,
@@ -21,26 +23,9 @@ function PollCard({ poll }: { poll: PollConfig }) {
   });
 
 
-  const formatTimestamp = (timestamp: bigint) => {
-    if (timestamp === BigInt(0)) return 'Not set';
-    return new Date(Number(timestamp) * 1000).toLocaleString();
-  };
 
-  const getStatus = () => {
-    if (!initialized) return { text: 'Not Initialized', color: 'text-gray-500' };
-    
-    const now = Date.now() / 1000;
-    const start = Number(startDate);
-    const end = Number(endDate);
-    
-    if (start > 0 && now < start) return { text: 'Upcoming', color: 'text-blue-600' };
-    if (end > 0 && now > end) return { text: 'Ended', color: 'text-red-600' };
-    if (start > 0 && now >= start && (end === 0 || now <= end)) return { text: 'Active', color: 'text-green-600' };
-    
-    return { text: 'Unknown', color: 'text-gray-500' };
-  };
-
-  const status = getStatus();
+  const pollStatus = getPollStatus(initialized, startDate, endDate, stateMerged);
+  const timelineStatus = initialized ? formatPollStatus(startDate, endDate) : 'Not scheduled';
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
@@ -51,9 +36,7 @@ function PollCard({ poll }: { poll: PollConfig }) {
           </h3>
           <p className="text-sm text-gray-600">ID: {poll.id}</p>
         </div>
-        <span className={`text-sm font-medium ${status.color}`}>
-          {status.text}
-        </span>
+        <PollStatusBadge status={pollStatus} />
       </div>
 
       <div className="mb-4 space-y-2 text-sm">
@@ -83,12 +66,8 @@ function PollCard({ poll }: { poll: PollConfig }) {
             <span>{String(totalSignups)} / {String(maxSignups ?? 0)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Start Date:</span>
-            <span>{formatTimestamp(startDate)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">End Date:</span>
-            <span>{formatTimestamp(endDate)}</span>
+            <span className="text-gray-600">Timeline:</span>
+            <span className="text-sm">{timelineStatus}</span>
           </div>
         </div>
       )}

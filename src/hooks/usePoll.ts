@@ -217,7 +217,7 @@ export function usePoll({
     stateMerged: ((stateMerged ?? false) as boolean),
 
     // Coordinator
-    coordinatorPublicKey: coordinatorPublicKeys ? new PubKey(coordinatorPublicKeys) : undefined,
+    coordinatorPublicKey: coordinatorPublicKeys ? new PubKey(coordinatorPublicKeys as [bigint, bigint]) : undefined,
 
     // External contracts
     extContracts: mappedExtContracts,

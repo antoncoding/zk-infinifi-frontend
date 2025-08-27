@@ -7,6 +7,7 @@ import { usePoll } from '@/hooks/usePoll';
 import Header from '@/components/layout/header/Header';
 import { Button, AddressBadge, KeyBadge, JoinAndVoteModal } from '@/components/common';
 import Link from 'next/link';
+import { formatPollStatus } from '@/utils/timeFormat';
 
 function PollInfoBox({ title, children, className = '' }: { 
   title: string; 
@@ -81,10 +82,6 @@ export default function PollDetailPage() {
     );
   }
 
-  const formatTimestamp = (timestamp: bigint) => {
-    if (timestamp === BigInt(0)) return 'Not set';
-    return new Date(Number(timestamp) * 1000).toLocaleString();
-  };
 
 
   return (
@@ -118,8 +115,7 @@ export default function PollDetailPage() {
             {/* Poll Information */}
             <PollInfoBox title="Poll Information">
               <InfoItem label="Contract Poll ID" value={contractPollId} />
-              <InfoItem label="Start Date" value={formatTimestamp(startDate)} />
-              <InfoItem label="End Date" value={formatTimestamp(endDate)} />
+              <InfoItem label="Status" value={formatPollStatus(startDate, endDate)} />
               <InfoItem label="Initialized" value={initialized ? 'Yes' : 'No'} />
               <InfoItem label="State Merged" value={stateMerged ? 'Yes' : 'No'} />
             </PollInfoBox>
