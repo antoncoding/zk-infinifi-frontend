@@ -2,10 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useAccount } from 'wagmi';
 import { HARDCODED_POLLS, type Poll } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
+import { useMACIRegistration } from '@/hooks/useMACIRegistration';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge, PollStatusBadge } from '@/components/common';
+import { Button, AddressBadge, PollStatusBadge, RegistrationModal } from '@/components/common';
+import { Avatar } from '@/components/Avatar/Avatar';
 import { formatPollStatus, getPollStatus } from '@/utils/timeFormat';
 
 function PollCard({ poll }: { poll: Poll }) {
@@ -73,7 +76,7 @@ function PollCard({ poll }: { poll: Poll }) {
       )}
 
       <Link href={`/poll/${poll.id}`}>
-        <Button variant="default" className="w-full">
+        <Button variant="default" className="w-full rounded-sm">
           View Details
         </Button>
       </Link>
@@ -82,13 +85,52 @@ function PollCard({ poll }: { poll: Poll }) {
 }
 
 export default function PollsPage() {
+  const { address } = useAccount();
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const { isFullyRegistered, loading: statusLoading, refresh } = useMACIRegistration();
+
   return (
     <div className="bg-main flex min-h-screen flex-col">
       <Header />
       <main className="container mx-auto flex-1 px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold text-gray-900">Polls</h1>
-          <p className="text-gray-600">Browse and participate in available polls</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold text-gray-900">Polls</h1>
+            <p className="text-gray-600">Browse and participate in available polls</p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {!address ? (
+              <div className="text-sm text-muted-foreground">
+                Connect wallet to register
+              </div>
+            ) : statusLoading ? (
+              <Button disabled className="rounded-sm">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                Checking...
+              </Button>
+            ) : !isFullyRegistered ? (
+              <Button 
+                onClick={() => setIsRegisterModalOpen(true)}
+                className="rounded-sm flex items-center gap-2"
+              >
+                <div className="relative">
+                  <Avatar address={address} size={20} />
+                  <div className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-orange-500 rounded-full" />
+                </div>
+                Register to Vote
+              </Button>
+            ) : (
+              <Button 
+                disabled 
+                variant="secondary"
+                className="rounded-sm flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-50"
+              >
+                <Avatar address={address} size={20} />
+                Registered
+              </Button>
+            )}
+          </div>
         </div>
 
         {HARDCODED_POLLS.length === 0 ? (
@@ -106,6 +148,16 @@ export default function PollsPage() {
           </div>
         )}
       </main>
+      
+      <RegistrationModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        pollId={HARDCODED_POLLS[0]?.id ?? "1"} // Use first poll ID as registration is global per MACI
+        onSuccess={() => {
+          refresh();
+          setIsRegisterModalOpen(false);
+        }}
+      />
     </div>
   );
 }

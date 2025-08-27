@@ -5,8 +5,8 @@ import { Button } from '@/components/common/Button';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { InfoDisplay } from '@/components/common/InfoDisplay';
 import { useAccount } from 'wagmi';
-import { mockDownloadArtifacts, mockSignUpToPoll, getPollFromSubgraph, hasUserJoinedPoll } from '@/lib/maci';
-import { getMaciAddress, getPollById } from '@/config/poll';
+import { getPollFromSubgraph, hasUserJoinedPoll } from '@/lib/maci';
+import { getPollById } from '@/config/poll';
 import { 
   ModalStateData, 
   ModalAction, 
@@ -224,8 +224,8 @@ export function JoinAndVoteModal({ isOpen, onClose, pollId, pollName }: JoinAndV
       await executeStep(
         'downloading',
         async () => {
-          // Download poll joining artifacts
-          await mockDownloadArtifacts();
+          // Download poll joining artifacts - placeholder
+          await new Promise(resolve => setTimeout(resolve, 1000));
         },
         0, 25
       );
@@ -234,15 +234,9 @@ export function JoinAndVoteModal({ isOpen, onClose, pollId, pollName }: JoinAndV
       await executeStep(
         'generating-proof',
         async () => {
-          // Generate proof and join the poll
-          const signUpData = await mockSignUpToPoll({
-            maciAddress: getMaciAddress(),
-            pollId: BigInt(pollId),
-          });
-
-          if (!signUpData) {
-            throw new Error('Failed to generate signup data');
-          }
+          // Generate proof and join the poll - placeholder
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          // In the real implementation, this would generate voting proofs
         },
         25, 75
       );

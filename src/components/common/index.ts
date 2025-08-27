@@ -6,3 +6,4 @@ export * from './ErrorDisplay';
 export * from './InfoDisplay';
 export * from './Badge';
 export * from './PollStatusBadge';
+export * from './RegistrationModal';

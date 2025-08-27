@@ -4,8 +4,9 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import { getPollById } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
+import { useMACIRegistration } from '@/hooks/useMACIRegistration';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge, KeyBadge, JoinAndVoteModal } from '@/components/common';
+import { Button, AddressBadge, KeyBadge, JoinAndVoteModal, RegistrationModal } from '@/components/common';
 import Link from 'next/link';
 import { formatPollStatus } from '@/utils/timeFormat';
 
@@ -43,9 +44,11 @@ function AddressInfoItem({ label, address }: { label: string; address: string })
 export default function PollDetailPage() {
   const params = useParams();
   const pollId = params.id as string;
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isVoteModalOpen, setIsVoteModalOpen] = React.useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
   
   const pollConfig = getPollById(pollId);
+  const { isFullyRegistered, loading: statusLoading, refresh } = useMACIRegistration();
   
   const { 
     startDate,
@@ -99,9 +102,20 @@ export default function PollDetailPage() {
             <Link href="/polls">
               <Button variant="secondary">Back to Polls</Button>
             </Link>
-            <Button onClick={() => setIsModalOpen(true)}>
-              Join & Vote
-            </Button>
+            {statusLoading ? (
+              <Button disabled className="rounded-sm">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                Loading...
+              </Button>
+            ) : !isFullyRegistered ? (
+              <Button onClick={() => setIsRegisterModalOpen(true)} className="rounded-sm">
+                Register
+              </Button>
+            ) : (
+              <Button onClick={() => setIsVoteModalOpen(true)} className="rounded-sm">
+                Join & Vote
+              </Button>
+            )}
           </div>
         </div>
 
@@ -162,12 +176,24 @@ export default function PollDetailPage() {
       </main>
       
       {pollConfig && (
-        <JoinAndVoteModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          pollId={pollId}
-          pollName={pollConfig.name}
-        />
+        <>
+          <JoinAndVoteModal
+            isOpen={isVoteModalOpen}
+            onClose={() => setIsVoteModalOpen(false)}
+            pollId={pollId}
+            pollName={pollConfig.name}
+          />
+          
+          <RegistrationModal
+            isOpen={isRegisterModalOpen}
+            onClose={() => setIsRegisterModalOpen(false)}
+            pollId={pollId}
+            onSuccess={() => {
+              refresh();
+              setIsRegisterModalOpen(false);
+            }}
+          />
+        </>
       )}
     </div>
   );

@@ -2,10 +2,10 @@ import { Badge } from './Badge';
 
 export type PollStatus = 'not-initialized' | 'upcoming' | 'active' | 'ended' | 'finalized';
 
-interface PollStatusBadgeProps {
+type PollStatusBadgeProps = {
   status: PollStatus;
   className?: string;
-}
+};
 
 const statusConfig = {
   'not-initialized': {

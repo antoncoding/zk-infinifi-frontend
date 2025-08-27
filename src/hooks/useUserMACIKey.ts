@@ -2,18 +2,15 @@ import { useCallback, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { Address } from 'viem';
 import { useLocalStorage } from './useLocalStorage';
-import { genKeypair } from '@maci-protocol/crypto';
+import { Keypair, PrivKey } from "@maci-protocol/domainobjs";
 
-type MACIKey = {
+// typing for the MACI key in storage
+type MACIStorageKeyPair = {
   publicKey: string;
   privateKey: string;
 };
 
-type MACIKeyStorage = {
-  [walletAddress: string]: {
-    [maciContract: string]: MACIKey;
-  };
-};
+type MACIKeyStorage = Record<string, Record<string, MACIStorageKeyPair>>;
 
 /**
  * Hook to manage MACI keys for users
@@ -25,7 +22,7 @@ export function useUserMACIKey() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const getMACIKeys = useCallback((maciContract: Address, userAddress?: Address): MACIKey | null => {
+  const getMACIKeys = useCallback((maciContract: Address, userAddress?: Address): Keypair | null => {
     try {
       setError(null);
       const walletAddr = userAddress ?? address;
@@ -38,7 +35,13 @@ export function useUserMACIKey() {
       const normalizedWallet = walletAddr.toLowerCase();
       const normalizedMaci = maciContract.toLowerCase();
       
-      return maciKeyStorage[normalizedWallet]?.[normalizedMaci] ?? null;
+      const keysInStorage = maciKeyStorage[normalizedWallet]?.[normalizedMaci] ?? null;
+      if (!keysInStorage) {
+        return null;
+      }
+
+      const keypair = new Keypair(PrivKey.deserialize(keysInStorage.privateKey));
+      return keypair;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to get MACI keys');
       setError(error);
@@ -47,7 +50,7 @@ export function useUserMACIKey() {
     }
   }, [address, maciKeyStorage]);
 
-  const createMACIKey = useCallback(async (maciContract: Address, userAddress?: Address): Promise<MACIKey | null> => {
+  const createMACIKey = useCallback(async (maciContract: Address, userAddress?: Address): Promise<Keypair | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -68,10 +71,10 @@ export function useUserMACIKey() {
       }
 
       // Generate new keypair
-      const keypair = genKeypair();
-      const newKey: MACIKey = {
-        publicKey: keypair.pubKey.toString(),
-        privateKey: keypair.privKey.toString(),
+      const keypair = new Keypair();
+      const keyPairInStorage: MACIStorageKeyPair = {
+        publicKey: keypair.pubKey.serialize(),
+        privateKey: keypair.privKey.serialize(),
       };
 
       // Store the new key
@@ -79,11 +82,11 @@ export function useUserMACIKey() {
         ...prev,
         [normalizedWallet]: {
           ...prev[normalizedWallet],
-          [normalizedMaci]: newKey,
+          [normalizedMaci]: keyPairInStorage,
         },
       }));
 
-      return newKey;
+      return keypair;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to create MACI key');
       setError(error);
@@ -94,7 +97,7 @@ export function useUserMACIKey() {
     }
   }, [address, getMACIKeys, setMACIKeyStorage]);
 
-  const getAllKeysForUser = useCallback((userAddress?: Address): Record<string, MACIKey> => {
+  const getAllKeysForUser = useCallback((userAddress?: Address): Record<string, MACIStorageKeyPair> => {
     try {
       setError(null);
       const walletAddr = userAddress ?? address;
@@ -132,10 +135,12 @@ export function useUserMACIKey() {
           return prev;
         }
 
-        const { [normalizedMaci]: removed, ...remainingKeys } = prev[normalizedWallet];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [normalizedMaci]: _, ...remainingKeys } = prev[normalizedWallet];
         
         if (Object.keys(remainingKeys).length === 0) {
-          const { [normalizedWallet]: removedWallet, ...remainingWallets } = prev;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [normalizedWallet]: __, ...remainingWallets } = prev;
           return remainingWallets;
         }
 

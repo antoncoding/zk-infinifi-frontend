@@ -4,57 +4,32 @@ export const MACI_CONFIG = {
 };
 
 // =============================================================================
-// MOCK MACI FUNCTIONS (Development only - replace with real MACI SDK later)
+// SUBGRAPH HELPER FUNCTIONS
 // =============================================================================
 
-export async function mockDownloadArtifacts(): Promise<void> {
-  // Simulate artifact download timing
-  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-  
-  // Simulate occasional network error
-  if (Math.random() < 0.1) {
-    throw new Error('Network error: Failed to download artifacts');
-  }
-}
+async function makeSubgraphRequest(query: string, variables: Record<string, any>) {
+  const response = await fetch(MACI_CONFIG.subgraphUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      variables,
+    }),
+  });
 
-export async function mockSignUpToPoll(params: { 
-  maciAddress: string; 
-  pollId: bigint 
-}): Promise<{ transactionHash: string; stateIndex: number; timestamp: number }> {
-  // Simulate signup process timing
-  await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
-  
-  // Simulate occasional transaction error
-  if (Math.random() < 0.1) {
-    throw new Error('Signup failed: Transaction rejected');
+  if (!response.ok) {
+    throw new Error(`Subgraph request failed: ${response.status} ${response.statusText}`);
   }
 
-  return {
-    transactionHash: '0x1234567890abcdef',
-    stateIndex: Math.floor(Math.random() * 1000),
-    timestamp: Date.now()
-  };
-}
-
-export async function mockPublishMessage(params: { 
-  pollId: bigint; 
-  voteOptionIndex: bigint; 
-  voteWeight: bigint; 
-  nonce: bigint 
-}): Promise<{ transactionHash: string; messageIndex: number; timestamp: number }> {
-  // Simulate voting timing
-  await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 2500));
+  const data = await response.json();
   
-  // Simulate occasional proof generation error
-  if (Math.random() < 0.1) {
-    throw new Error('Vote failed: Proof generation error');
+  if (data.errors) {
+    throw new Error(`Subgraph query error: ${JSON.stringify(data.errors)}`);
   }
 
-  return {
-    transactionHash: '0xabcdef1234567890',
-    messageIndex: Math.floor(Math.random() * 1000),
-    timestamp: Date.now()
-  };
+  return data.data;
 }
 
 // =============================================================================
@@ -93,44 +68,41 @@ export async function getPollFromSubgraph(pollId: string) {
     }
   `;
 
-  const response = await fetch(MACI_CONFIG.subgraphUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query,
-      variables: { pollId },
-    }),
-  });
-
-  const data = await response.json();
-  return data.data?.poll;
+  const data = await makeSubgraphRequest(query, { pollId });
+  return data?.poll;
 }
 
+// Check if user is registered on MACI by public key coordinates
+export async function isUserRegisteredOnMaci(pubKeyX: bigint, pubKeyY: bigint): Promise<boolean> {
+  try {
+    // Convert bigints to strings and concatenate for the user ID
+    const xHex = pubKeyX.toString();
+    const yHex = pubKeyY.toString();
+    const userId = `${xHex} ${yHex}`;
+
+    const query = `
+      query GetUser($userId: String!) {
+        user(id: $userId) {
+          id
+        }
+      }
+    `;
+
+    const data = await makeSubgraphRequest(query, { userId });
+    return data?.user !== null && data?.user !== undefined;
+  } catch (error) {
+    console.error('Error checking user registration:', error);
+    return false;
+  }
+}
+
+// Legacy function for backward compatibility - will be removed
 export async function hasUserJoinedPoll(
   pollId: string,
   userPubKey: string
 ): Promise<boolean> {
-  const query = `
-    query CheckUserSignup($pollId: String!, $pubKey: String!) {
-      signups(where: { poll: $pollId, pubKey: $pubKey }) {
-        id
-      }
-    }
-  `;
-
-  const response = await fetch(MACI_CONFIG.subgraphUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query,
-      variables: { pollId, pubKey: userPubKey },
-    }),
-  });
-
-  const data = await response.json();
-  return data.data?.signups?.length > 0;
+  // This is a placeholder - in the real implementation, we would need to parse
+  // the userPubKey and extract x,y coordinates, then use isUserRegisteredOnMaci
+  console.warn('hasUserJoinedPoll is deprecated, use isUserRegisteredOnMaci instead');
+  return false;
 }
