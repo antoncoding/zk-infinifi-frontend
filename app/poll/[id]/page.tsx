@@ -50,6 +50,17 @@ export default function PollDetailPage() {
   const pollConfig = getPollById(pollId);
   const { isFullyRegistered, loading: statusLoading, refresh } = useMACIRegistration();
   
+  // Auto-refresh registration status to detect when user becomes fully registered
+  React.useEffect(() => {
+    if (!isFullyRegistered) {
+      const interval = setInterval(() => {
+        refresh();
+      }, 3000); // Check every 3 seconds when not fully registered
+      
+      return () => clearInterval(interval);
+    }
+  }, [isFullyRegistered, refresh]);
+  
   const { 
     startDate,
     endDate,

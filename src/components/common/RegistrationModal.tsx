@@ -31,7 +31,7 @@ export function RegistrationModal({
   onSuccess 
 }: RegistrationModalProps) {
   const { address, chainId } = useAccount();
-  const { signUp, registrationPending } = useMACIRegistration();
+  const { signUp, registrationPending, isFullyRegistered, refresh } = useMACIRegistration();
   const { getMACIKeys, createMACIKey, loading: keyLoading } = useUserMACIKey();
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -44,16 +44,23 @@ export function RegistrationModal({
   // Check initial state when modal opens
   useEffect(() => {
     if (isOpen && address) {
+      // Force a refresh to get the latest registration status
+      refresh();
+      
       const existingKey = getMACIKeys(maciContract, address);
-      if (existingKey) {
-        setGeneratedKey(existingKey);
-        setCurrentStep(1); // Skip to registration step
+      setGeneratedKey(existingKey);
+      
+      // Check registration status and set appropriate step
+      if (isFullyRegistered) {
+        setCurrentStep(2); // Skip to done step if already fully registered
+      } else if (existingKey) {
+        setCurrentStep(1); // Skip to registration step if key exists
       } else {
         setCurrentStep(0); // Start from key generation
       }
       setError(null);
     }
-  }, [isOpen, address, getMACIKeys, maciContract]);
+  }, [isOpen, address, getMACIKeys, maciContract, isFullyRegistered, refresh]);
 
   const handleGenerateKey = async () => {
     if (!address) return;
@@ -117,6 +124,12 @@ export function RegistrationModal({
         setGeneratedKey(null);
       }, 200);
     }
+  };
+
+  const handleDone = () => {
+    // Trigger a refresh to ensure parent components get the latest status
+    refresh();
+    handleClose();
   };
 
   const renderStepContent = () => {
@@ -202,7 +215,7 @@ export function RegistrationModal({
               </p>
             </div>
             <Button
-              onClick={handleClose}
+              onClick={handleDone}
               className="w-full rounded-sm bg-green-600 hover:bg-green-700"
               size="lg"
             >

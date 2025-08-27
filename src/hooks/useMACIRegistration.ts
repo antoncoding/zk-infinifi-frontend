@@ -7,7 +7,6 @@ import { isUserRegisteredOnMaci } from '@/lib/maci';
 import { useTransactionWithToast } from './useTransactionWithToast';
 import { abi as maciAbi } from '@/abis/maci';
 import { baseSepolia } from 'viem/chains';
-// import { Keypair } from '@maci-protocol/domainobjs';
 
 type MACIRegistrationStatus = {
   hasKey: boolean;
