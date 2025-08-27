@@ -2,8 +2,7 @@ import { Address } from 'viem';
 import { useReadContract } from 'wagmi';
 import { poolAbi } from '@/abis/poll';
 import { SupportedNetworks } from '@/utils/networks';
-import { useMemo } from 'react';
-import { IJsonPublicKey, PubKey } from '@maci-protocol/domainobjs';
+import { PubKey } from '@maci-protocol/domainobjs';
 
 type ExtContracts = {
   maci: Address;
@@ -11,11 +10,6 @@ type ExtContracts = {
   verifyingKeysRegistry: Address;
   policy: Address;
   initialVoiceCreditProxy: Address;
-};
-
-type CoordinatorPublicKey = {
-  x: bigint;
-  y: bigint;
 };
 
 type PollHookResult = {

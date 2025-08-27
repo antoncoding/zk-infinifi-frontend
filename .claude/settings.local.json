@@ -4,7 +4,9 @@
       "Bash(mv:*)",
       "Bash(cat:*)",
       "Bash(mkdir:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(pnpm dev:*)"
     ],
     "deny": []
   }

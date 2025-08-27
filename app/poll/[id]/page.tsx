@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { getPollById } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge, KeyBadge } from '@/components/common';
+import { Button, AddressBadge, KeyBadge, JoinAndVoteModal } from '@/components/common';
 import Link from 'next/link';
 
 function PollInfoBox({ title, children, className = '' }: { 
@@ -42,6 +42,7 @@ function AddressInfoItem({ label, address }: { label: string; address: string })
 export default function PollDetailPage() {
   const params = useParams();
   const pollId = params.id as string;
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
   
   const pollConfig = getPollById(pollId);
   
@@ -97,9 +98,14 @@ export default function PollDetailPage() {
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">Poll ID: {pollId}</p>
           </div>
-          <Link href="/polls">
-            <Button variant="secondary">Back to Polls</Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/polls">
+              <Button variant="secondary">Back to Polls</Button>
+            </Link>
+            <Button onClick={() => setIsModalOpen(true)}>
+              Join & Vote
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -158,6 +164,15 @@ export default function PollDetailPage() {
           </div>
         )}
       </main>
+      
+      {pollConfig && (
+        <JoinAndVoteModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          pollId={pollId}
+          pollName={pollConfig.name}
+        />
+      )}
     </div>
   );
 }

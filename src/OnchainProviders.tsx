@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { baseSepolia, mainnet } from 'wagmi/chains';
 import { createWagmiConfig } from '@/store/createWagmiConfig';
-import { getChainsForEnvironment } from '@/store/supportedChains';
 
 type Props = { children: ReactNode };
 

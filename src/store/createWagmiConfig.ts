@@ -10,7 +10,7 @@ import {
   ledgerWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 import { createConfig, http } from 'wagmi';
-import { base, baseSepolia, mainnet, polygon, unichain } from 'wagmi/chains';
+import { baseSepolia, mainnet } from 'wagmi/chains';
 import { getChainsForEnvironment } from './supportedChains';
 
 const alchemyKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
