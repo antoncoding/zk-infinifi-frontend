@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
-import { poseidon } from "@maci-protocol/crypto";
 import { Poll } from '@/config/poll';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Shield, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { downloadPollJoiningArtifactsBrowser } from '@/lib/maci';
+import { downloadPollJoiningArtifactsBrowser, generateJoinProof } from '@/lib/maci';
 import { getMaciAddress, getMaciConfig } from '@/config/poll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
-import { Signer } from 'ethers';
 import { usePollUserStats } from '@/hooks/usePollUserStats';
+import { useMaciUserStats } from '@/hooks/useMaciUserStats';
 
 const maciAddress = getMaciAddress();
 
@@ -34,6 +33,8 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [downloadedArtifacts, setDownloadedArtifacts] = useState<{zKey: Uint8Array, wasm: Uint8Array} | null>(null);
+  const [wasmUrl, setWasmUrl] = useState<string|null>(null);
+  const [zkeyUrl, setZKeyUrl] = useState<string|null>(null);
 
   const { getMACIKeys } = useUserMACIKey();
   
@@ -41,7 +42,7 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
 
   const userKeyPair = useMemo(() => {
     return getMACIKeys(maciAddress, address)
-  }, [getMACIKeys, maciAddress, address])
+  }, [getMACIKeys, address])
 
   const { hasJoined, nullifier } = usePollUserStats({
     poll: poll.pollContract,
@@ -49,7 +50,16 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
     keyPair: userKeyPair,
   });
 
+  const { stateIndex, stateTreeDepth, totalSignups } = useMaciUserStats({
+    maci: maciAddress,
+    keyPair: userKeyPair,
+  });
+
   console.log("hasJoined", hasJoined, nullifier)
+  console.log("zkurl", zkeyUrl)
+  console.log("stateIndex", stateIndex)
+  console.log("stateTreeDepth", stateTreeDepth)
+  console.log("totalSignups", totalSignups)
 
   // Check if user has already joined the poll
   useEffect(() => {
@@ -64,7 +74,6 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
         }
       } catch (error) {
         console.error('Failed to check user join status:', error);
-        // Don't show error for this check, just proceed with join flow
         setCurrentStep(0);
       }
     }
@@ -89,6 +98,17 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
       });
       
       setDownloadedArtifacts(artifacts);
+
+      // Assuming you have pollWasm and pollJoiningZkey as Uint8Array
+      const wasmBlob = new Blob([artifacts.wasm], { type: 'application/wasm' });
+      const zkeyBlob = new Blob([artifacts.zKey], { type: 'application/octet-stream' });
+      
+      const wasmUrl = URL.createObjectURL(wasmBlob);
+      const zkeyUrl = URL.createObjectURL(zkeyBlob);
+
+      setWasmUrl(wasmUrl)
+      setZKeyUrl(zkeyUrl)
+
       setCurrentStep(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to download artifacts');
@@ -98,14 +118,23 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
   };
 
   const handleGenerateProof = async () => {
-    if (!address) return;
+    if (!address || !userKeyPair || !wasmUrl || !zkeyUrl) return;
 
     try {
       setError(null);
       setIsProcessing(true);
       
-      // Simulate proof generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Generate proof using simplified logic
+      const proofData = await generateJoinProof({
+        maciKeypair: userKeyPair,
+        pollId: BigInt(poll.id),
+        stateTreeDepth: Number(stateTreeDepth) ?? 10, // fallback to 10 if not available
+        maciAddress: maciAddress,
+        zkeyPath: zkeyUrl,
+        wasmPath: wasmUrl,
+      });
+      
+      console.log('Generated proof:', proofData);
       
       setCurrentStep(2);
     } catch (err) {

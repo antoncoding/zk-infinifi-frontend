@@ -3,7 +3,7 @@ import { useAccount } from 'wagmi';
 import { encodeFunctionData } from 'viem';
 import { useUserMACIKey } from './useUserMACIKey';
 import { getMaciAddress } from '@/config/poll';
-import { isUserRegisteredOnMaci } from '@/lib/maci';
+import { DEFAULT_SIGNUP_POLICY_DATA, isUserRegisteredOnMaci } from '@/lib/maci';
 import { useTransactionWithToast } from './useTransactionWithToast';
 import { abi as maciAbi } from '@/abis/maci';
 import { baseSepolia } from 'viem/chains';
@@ -114,7 +114,7 @@ export function useMACIRegistration() {
         functionName: 'signUp',
         args: [
           maciKey.pubKey.asContractParam(),
-          '0x', // _signUpPolicyData 
+          DEFAULT_SIGNUP_POLICY_DATA, // _signUpPolicyData 
         ],
       });
 

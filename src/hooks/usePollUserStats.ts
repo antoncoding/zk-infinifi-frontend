@@ -2,7 +2,7 @@ import { Address } from 'viem';
 import { useReadContract } from 'wagmi';
 import { poolAbi } from '@/abis/poll';
 import { SupportedNetworks } from '@/utils/networks';
-import { Keypair, PubKey } from '@maci-protocol/domainobjs';
+import { Keypair } from '@maci-protocol/domainobjs';
 import { poseidon } from '@maci-protocol/crypto';
 
 type PollUserStatsHookResult = {
@@ -40,21 +40,6 @@ export function usePollUserStats({
     },
     chainId: chainId,
   });
-
-
-  // fetch again in this hook for simplicity. It's also fetched in usePoll hook
-  const { data: coordinatorPublicKeys } = useReadContract({
-    abi: poolAbi,
-    functionName: 'coordinatorPublicKey',
-    address: poll,
-    query: {
-      enabled: !!poll,
-      refetchInterval,
-    },
-    chainId,
-  });
- 
-  // calculate shared key with coordinator pub key and maci private key
 
   return {
     hasJoined: hasJoined ? true : false,
