@@ -6,7 +6,7 @@ import { Poll } from '@/config/poll';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Shield, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { downloadPollJoiningArtifactsBrowser, generateJoinProof } from '@/lib/maci';
+import { downloadPollJoiningArtifactsBrowser, generateJoinProof, formatProofForVerifierContract } from '@/lib/maci';
 import { getMaciAddress, getMaciConfig } from '@/config/poll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
 import { usePollUserStats } from '@/hooks/usePollUserStats';
@@ -35,6 +35,13 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
   const [downloadedArtifacts, setDownloadedArtifacts] = useState<{zKey: Uint8Array, wasm: Uint8Array} | null>(null);
   const [wasmUrl, setWasmUrl] = useState<string|null>(null);
   const [zkeyUrl, setZKeyUrl] = useState<string|null>(null);
+  const [proofData, setProofData] = useState<{
+    proof: string[];
+    publicSignals: string[];
+    // circuitInputs: Record<string, bigint>;
+    nullifier: string;
+    stateRoot: bigint;
+  } | null>(null);
 
   const { getMACIKeys } = useUserMACIKey();
   
@@ -44,7 +51,7 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
     return getMACIKeys(maciAddress, address)
   }, [getMACIKeys, address])
 
-  const { hasJoined, nullifier } = usePollUserStats({
+  const { hasJoined, nullifier, joinPoll } = usePollUserStats({
     poll: poll.pollContract,
     pollId: BigInt(poll.id),
     keyPair: userKeyPair,
@@ -125,7 +132,7 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
       setIsProcessing(true);
       
       // Generate proof using simplified logic
-      const proofData = await generateJoinProof({
+      const generatedProof = await generateJoinProof({
         maciKeypair: userKeyPair,
         pollId: BigInt(poll.id),
         stateTreeDepth: Number(stateTreeDepth) ?? 10, // fallback to 10 if not available
@@ -134,7 +141,10 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
         wasmPath: wasmUrl,
       });
       
-      console.log('Generated proof:', proofData);
+      console.log('Generated proof:', generatedProof);
+      
+      // Store proof data for transaction submission
+      setProofData(generatedProof);
       
       setCurrentStep(2);
     } catch (err) {
@@ -145,14 +155,17 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
   };
 
   const handleSubmitTransaction = async () => {
-    if (!address) return;
+    if (!address || !userKeyPair || !proofData) return;
 
     try {
       setError(null);
       setIsProcessing(true);
       
-      // Simulate transaction submission
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Use the latest state root index (total signups - 1)
+      const stateRootIndex = Number(totalSignups ?? 0) - 1;
+      
+      // Submit join transaction
+      await joinPoll(proofData.proof, stateRootIndex, userKeyPair.pubKey);
       
       setCurrentStep(3);
     } catch (err) {
@@ -189,6 +202,7 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
         setCurrentStep(0);
         setError(null);
         setDownloadedArtifacts(null);
+        setProofData(null);
       }, 200);
     }
   };

@@ -1,6 +1,6 @@
 import { Abi } from 'viem';
 
-export const poolAbi: Abi = [
+export const pollAbi: Abi = [
     {
       "inputs": [],
       "name": "AlreadyInitialized",

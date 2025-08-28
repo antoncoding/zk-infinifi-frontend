@@ -1,6 +1,6 @@
 import { Address } from 'viem';
 import { useReadContract } from 'wagmi';
-import { poolAbi } from '@/abis/poll';
+import { pollAbi } from '@/abis/poll';
 import { SupportedNetworks } from '@/utils/networks';
 import { PubKey } from '@maci-protocol/domainobjs';
 
@@ -53,7 +53,7 @@ export function usePoll({
 
   // Read start and end dates
   const { data: startAndEndDates } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'getStartAndEndDate',
     address,
     query: {
@@ -64,7 +64,7 @@ export function usePoll({
   });
 
   const { data: startDate } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'startDate',
     address,
     query: {
@@ -76,7 +76,7 @@ export function usePoll({
   // console.log('startDate', startDate, chainId, address);
 
   const { data: endDate } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'endDate',
     address,
     query: {
@@ -87,7 +87,7 @@ export function usePoll({
   });
 
   const { data: pollId } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'pollId',
     address,
     query: {
@@ -98,7 +98,7 @@ export function usePoll({
   });
 
   const { data: maxSignups } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'maxSignups',
     address,
     query: {
@@ -109,7 +109,7 @@ export function usePoll({
   });
 
   const { data: totalSignups } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'totalSignups',
     address,
     query: {
@@ -120,7 +120,7 @@ export function usePoll({
   });
 
   const { data: initialized } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'initialized',
     address,
     query: {
@@ -131,7 +131,7 @@ export function usePoll({
   });
 
   const { data: stateMerged } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'stateMerged',
     address,
     query: {
@@ -142,7 +142,7 @@ export function usePoll({
   });
 
   const { data: voteOptions } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'voteOptions',
     address,
     query: {
@@ -153,7 +153,7 @@ export function usePoll({
   });
 
   const { data: numMessages } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'numMessages',
     address,
     query: {
@@ -165,7 +165,7 @@ export function usePoll({
 
   // External contracts
   const { data: extContracts } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'extContracts',
     address,
     query: {
@@ -176,7 +176,7 @@ export function usePoll({
   });
 
   const { data: coordinatorPublicKeys } = useReadContract({
-    abi: poolAbi,
+    abi: pollAbi,
     functionName: 'coordinatorPublicKey',
     address,
     query: {

@@ -1,7 +1,7 @@
 import { getClient } from "@/utils/rpc";
 import { IPollJoiningArtifacts } from "node_modules/@maci-protocol/sdk/build/ts/proof/types";
 import { Address, getContract } from "viem";
-import { poolAbi } from "@/abis/poll";
+import { pollAbi } from "@/abis/poll";
 import { SupportedNetworks } from "@/utils/networks";
 import { groth16, type PublicSignals, type Groth16Proof, zKey } from "snarkjs";
 import { poseidon } from "@maci-protocol/crypto";
@@ -227,7 +227,7 @@ export async function buildStateTreeAndGetProof(
 ): Promise<{ proof: MerkleProof; userStateIndex: number }> {
   // Fetch all SignUp events in order
   const signUpEvents = await getAllSignUpEvents(maciAddress);
-  
+
   // Create merkle tree
   const tree = new SimpleMerkleTree(stateTreeDepth);
   
@@ -406,6 +406,8 @@ export const generateJoinProof = async ({
   const userPubKeyX = BigInt(maciKeypair.pubKey.asContractParam().x);
   const userPubKeyY = BigInt(maciKeypair.pubKey.asContractParam().y);
 
+  console.log('building state tree from events')
+
   // Build state tree and get proof for user
   const { proof } = await buildStateTreeAndGetProof(
     userPubKeyX,
@@ -436,10 +438,27 @@ export const generateJoinProof = async ({
   );
   
   return { 
-    proof: zkProof, 
+    proof: formatProofForVerifierContract(zkProof), 
     publicSignals,
     circuitInputs,
-    nullifier: circuitInputs.nullifier,
+    nullifier: circuitInputs.nullifier as string,
     stateRoot: proof.root
   };
 }
+
+/** Format a SnarkProof type to an array of strings
+ * which can be passed to the Groth16 verifier contract.
+ */
+export function formatProofForVerifierContract(proof: any): string[] {
+  return [
+    proof.pi_a[0].toString(),
+    proof.pi_a[1].toString(), 
+    proof.pi_b[0][1].toString(),
+    proof.pi_b[0][0].toString(),
+    proof.pi_b[1][1].toString(),
+    proof.pi_b[1][0].toString(),
+    proof.pi_c[0].toString(),
+    proof.pi_c[1].toString()
+  ];
+}
+
