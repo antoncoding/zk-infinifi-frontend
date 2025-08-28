@@ -18,10 +18,16 @@ export type Poll = {
 export type MaciConfig = {
   address: Address;
   polls: Poll[];
+  stateTreeDepth: number;
+  testing: boolean;
 };
 
 // Global MACI configuration - assuming single MACI contract for now
 export const MACI_CONTRACT_ADDRESS: Address = '0x9c8576DF269DAa79497473A763eB2736091652A0';
+
+// MACI circuit configuration
+export const MACI_STATE_TREE_DEPTH = 10;
+export const MACI_TESTING_MODE = true;
 
 export const HARDCODED_POLLS: Poll[] = [
   {
@@ -50,4 +56,11 @@ export function getPollByAddress(address: Address): Poll | undefined {
 
 export function getMaciAddress(): Address {
   return MACI_CONTRACT_ADDRESS;
+}
+
+export function getMaciConfig(): { stateTreeDepth: number; testing: boolean } {
+  return {
+    stateTreeDepth: MACI_STATE_TREE_DEPTH,
+    testing: MACI_TESTING_MODE,
+  };
 }

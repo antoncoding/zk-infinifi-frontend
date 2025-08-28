@@ -27,6 +27,7 @@
     "@wagmi/core": "^2.5.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "ethers": "^5.8.0",
     "framer-motion": "^11.0.3",
     "local-storage-fallback": "^5.0.0",
     "lucide-react": "^0.323.0",

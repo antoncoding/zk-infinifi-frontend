@@ -1,100 +1,55 @@
-import React, { useReducer, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/common/Button';
-import { ErrorDisplay } from '@/components/common/ErrorDisplay';
-import { InfoDisplay } from '@/components/common/InfoDisplay';
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
-import { getPollFromSubgraph, hasUserJoinedPoll } from '@/lib/maci';
-import { getPollById } from '@/config/poll';
-import { 
-  ModalStateData, 
-  ModalAction, 
-  JoinStep, 
-  ENHANCED_JOIN_STEPS, 
-  ERROR_CONFIGS,
-  DisplayInfo,
-  ModalError 
-} from '@/types/modal';
+import { poseidon } from "@maci-protocol/crypto";
+import { Poll } from '@/config/poll';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Download, Shield, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { downloadPollJoiningArtifactsBrowser } from '@/lib/maci';
+import { getMaciAddress, getMaciConfig } from '@/config/poll';
+import { useUserMACIKey } from '@/hooks/useUserMACIKey';
+import { Signer } from 'ethers';
+import { usePollUserStats } from '@/hooks/usePollUserStats';
+
+const maciAddress = getMaciAddress();
 
 type JoinAndVoteModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  pollId: string;
-  pollName?: string;
-}
-
-// Initial state
-const initialState: ModalStateData = {
-  modalState: 'joining',
-  joinStep: 'downloading',
-  progress: 0,
-  subProgress: 0,
-  isProcessing: false,
-  error: null,
-  displayInfo: null,
-  stepDetails: null
+  poll: Poll;
 };
 
-// State reducer for clean state management
-function modalReducer(state: ModalStateData, action: ModalAction): ModalStateData {
-  switch (action.type) {
-    case 'SET_MODAL_STATE':
-      return { ...state, modalState: action.state };
-    
-    case 'SET_JOIN_STEP':
-      return { 
-        ...state, 
-        joinStep: action.step,
-        stepDetails: action.details ?? ENHANCED_JOIN_STEPS[action.step],
-        error: null // Clear errors when moving to new step
-      };
-    
-    case 'SET_PROGRESS':
-      return { 
-        ...state, 
-        progress: action.progress,
-        subProgress: action.subProgress 
-      };
-    
-    case 'SET_PROCESSING':
-      return { ...state, isProcessing: action.isProcessing };
-    
-    case 'SET_ERROR':
-      return { ...state, error: action.error, isProcessing: false };
-    
-    case 'SET_INFO':
-      return { ...state, displayInfo: action.info };
-    
-    case 'CLEAR_ERROR':
-      return { ...state, error: null };
-    
-    case 'RESET_MODAL':
-      return initialState;
-    
-    default:
-      return state;
-  }
-}
+const STEPS = [
+  { id: 'downloading', title: 'Download Artifacts', description: 'Download zk-SNARK artifacts for joining', icon: Download, label: 'Download' },
+  { id: 'generating', title: 'Generate Proof', description: 'Generate cryptographic proof to join poll', icon: Shield, label: 'Generate' },
+  { id: 'submitting', title: 'Submit Transaction', description: 'Submit join transaction to blockchain', icon: Send, label: 'Submit' },
+  { id: 'done', title: 'Joined Successfully!', description: 'Ready to cast your vote', icon: CheckCircle, label: 'Complete' }
+];
 
-export function JoinAndVoteModal({ isOpen, onClose, pollId, pollName }: JoinAndVoteModalProps) {
-  const [state, dispatch] = useReducer(modalReducer, initialState);
-  
+export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProps) {
   const { address, isConnected } = useAccount();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [downloadedArtifacts, setDownloadedArtifacts] = useState<{zKey: Uint8Array, wasm: Uint8Array} | null>(null);
 
-  // Create a ref for the retry function to avoid circular dependencies
-  const retryFunctionRef = React.useRef<(() => void) | null>(null);
+  const { getMACIKeys } = useUserMACIKey();
+  
+  const maciConfig = getMaciConfig();
 
-  // Helper function to create errors
-  const createError = useCallback((type: keyof typeof ERROR_CONFIGS, message: string, details?: string): ModalError => {
-    const config = ERROR_CONFIGS[type];
-    return {
-      ...config,
-      message,
-      details,
-      retryAction: type !== 'unknown' ? () => retryFunctionRef.current?.() : undefined
-    };
-  }, []);
+  const userKeyPair = useMemo(() => {
+    return getMACIKeys(maciAddress, address)
+  }, [getMACIKeys, maciAddress, address])
+
+  const { hasJoined, nullifier } = usePollUserStats({
+    poll: poll.pollContract,
+    pollId: BigInt(poll.id),
+    keyPair: userKeyPair,
+  });
+
+  console.log("hasJoined", hasJoined, nullifier)
 
   // Check if user has already joined the poll
   useEffect(() => {
@@ -102,382 +57,303 @@ export function JoinAndVoteModal({ isOpen, onClose, pollId, pollName }: JoinAndV
       if (!isConnected || !address || !isOpen) return;
 
       try {
-        // Get poll data from subgraph (for future use)
-        await getPollFromSubgraph(pollId);
-
-        // Check if user has already joined
-        const joined = await hasUserJoinedPoll(pollId, String(address));
-        
-        if (joined) {
-          dispatch({ type: 'SET_MODAL_STATE', state: 'voting' });
+        if (hasJoined) {
+          setCurrentStep(3); // Skip to final step if already joined
+        } else {
+          setCurrentStep(0); // Start from beginning
         }
       } catch (error) {
         console.error('Failed to check user join status:', error);
         // Don't show error for this check, just proceed with join flow
+        setCurrentStep(0);
       }
     }
 
-    void checkUserJoined();
-  }, [isConnected, address, isOpen, pollId]);
+    if (isOpen) {
+      void checkUserJoined();
+      setError(null);
+    }
+  }, [isConnected, address, isOpen, hasJoined]);
 
-  // Helper function to show info during steps
-  const showStepInfo = useCallback((content: string, items?: string[], variant?: DisplayInfo['variant']) => {
-    dispatch({
-      type: 'SET_INFO',
-      info: {
-        type: 'progress',
-        content,
-        items,
-        variant: variant ?? 'default'
-      }
-    });
-  }, []);
+  const handleDownloadArtifacts = async () => {
+    if (!address) return;
 
-  // Simulated step execution with proper error handling
-  const executeStep = useCallback(async (
-    step: JoinStep,
-    stepFunction: () => Promise<void>,
-    progressStart: number,
-    progressEnd: number
-  ) => {
     try {
-      dispatch({ type: 'SET_JOIN_STEP', step });
-      dispatch({ type: 'SET_PROGRESS', progress: progressStart });
+      setError(null);
+      setIsProcessing(true);
       
-      const stepDetails = ENHANCED_JOIN_STEPS[step];
+      // Download artifacts directly
+      const artifacts = await downloadPollJoiningArtifactsBrowser({
+        testing: maciConfig.testing,
+        stateTreeDepth: maciConfig.stateTreeDepth,
+      });
       
-      // Show initial step info
-      showStepInfo(stepDetails.description, stepDetails.tips, 'info');
+      setDownloadedArtifacts(artifacts);
+      setCurrentStep(1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download artifacts');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGenerateProof = async () => {
+    if (!address) return;
+
+    try {
+      setError(null);
+      setIsProcessing(true);
       
-      // Simulate sub-steps if available
-      if (stepDetails.subSteps) {
-        for (let i = 0; i < stepDetails.subSteps.length; i++) {
-          const subProgress = progressStart + ((progressEnd - progressStart) * i / stepDetails.subSteps.length);
-          dispatch({ type: 'SET_PROGRESS', progress: subProgress, subProgress: (i / stepDetails.subSteps.length) * 100 });
-          
-          showStepInfo(`${stepDetails.description}\n\n${stepDetails.subSteps[i]}...`);
-          
-          // Simulate processing time
-          await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+      // Simulate proof generation
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setCurrentStep(2);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate proof');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSubmitTransaction = async () => {
+    if (!address) return;
+
+    try {
+      setError(null);
+      setIsProcessing(true);
+      
+      // Simulate transaction submission
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setCurrentStep(3);
+    } catch (err) {
+      // Handle different types of errors
+      let errorMessage = 'Failed to submit transaction';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('User rejected') || err.message.includes('user denied')) {
+          errorMessage = 'Transaction cancelled by user';
+        } else if (err.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds for transaction';
+        } else if (
+          err.message.includes('current chain of the wallet') ||
+          err.message.includes('does not match the chain') ||
+          err.message.toLowerCase().includes('chain mismatch')
+        ) {
+          errorMessage = "Wrong network. Switch your wallet to the poll's network.";
+        } else {
+          errorMessage = err.message;
         }
       }
       
-      // Execute the actual step function
-      await stepFunction();
-      
-      dispatch({ type: 'SET_PROGRESS', progress: progressEnd, subProgress: 100 });
-      
-      // Show completion info
-      if (step === 'completed') {
-        showStepInfo('Successfully joined the poll!', ['You can now participate in voting'], 'success');
-      }
-      
-    } catch (error: unknown) {
-      console.error(`Error in step ${step}:`, error);
-      
-      // Create appropriate error based on step and error type
-      let modalError: ModalError;
-      
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        modalError = createError('network', 'Failed to connect to the network. Please check your internet connection.', errorMessage);
-      } else if (errorMessage.includes('wallet')) {
-        modalError = createError('wallet', 'Wallet connection failed. Please ensure your wallet is connected.', errorMessage);
-      } else if (errorMessage.includes('timeout')) {
-        modalError = createError('timeout', 'Operation timed out. This might be due to network congestion.', errorMessage);
-      } else if (step === 'generating-proof') {
-        modalError = createError('proof', 'Failed to generate cryptographic proof. This might be due to insufficient browser resources.', errorMessage);
-      } else {
-        const stepLabel = 'process'; // Default fallback for error message
-        modalError = createError('sdk', `Error during ${stepLabel}. Please try again.`, errorMessage);
-      }
-      
-      dispatch({ type: 'SET_ERROR', error: modalError });
-    }
-  }, [createError, showStepInfo]);
-
-  // Main join poll function
-  const handleJoinPoll = useCallback(async () => {
-    if (state.isProcessing) return;
-    
-    dispatch({ type: 'SET_PROCESSING', isProcessing: true });
-    dispatch({ type: 'CLEAR_ERROR' });
-
-    // Set the retry function reference  
-    retryFunctionRef.current = () => {
-      dispatch({ type: 'CLEAR_ERROR' });
-      void handleJoinPoll();
-    };
-
-    const pollConfig = getPollById(pollId);
-    if (!pollConfig) {
-      dispatch({ 
-        type: 'SET_ERROR', 
-        error: createError('sdk', 'Poll configuration not found', `Poll ID: ${pollId}`)
-      });
-      return;
-    }
-
-    try {
-      // Step 1: Download artifacts
-      await executeStep(
-        'downloading',
-        async () => {
-          // Download poll joining artifacts - placeholder
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        },
-        0, 25
-      );
-
-      // Step 2: Generate proof and join
-      await executeStep(
-        'generating-proof',
-        async () => {
-          // Generate proof and join the poll - placeholder
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          // In the real implementation, this would generate voting proofs
-        },
-        25, 75
-      );
-
-      // Step 3: Submit transaction
-      await executeStep(
-        'submitting',
-        async () => {
-          // Transaction should have been submitted in the previous step
-          // This step is for waiting for confirmation
-          showStepInfo('Transaction submitted, waiting for confirmation...');
-        },
-        75, 100
-      );
-
-      // Step 4: Complete
-      await executeStep(
-        'completed',
-        async () => {
-          // Auto-transition to voting after delay
-          setTimeout(() => {
-            dispatch({ type: 'SET_MODAL_STATE', state: 'voting' });
-          }, 2000);
-        },
-        100, 100
-      );
-
-    } catch (error) {
-      // Error handling is done in executeStep
-      console.error('Join poll failed:', error);
+      setError(errorMessage);
+      console.error('Join transaction error:', err);
     } finally {
-      dispatch({ type: 'SET_PROCESSING', isProcessing: false });
+      setIsProcessing(false);
     }
-  }, [state.isProcessing, executeStep, pollId, createError, showStepInfo]);
-
-  const handleVote = useCallback(async () => {
-    // Simplified voting for now - just show success
-    dispatch({ type: 'SET_MODAL_STATE', state: 'completed' });
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    dispatch({ type: 'CLEAR_ERROR' });
-    void handleJoinPoll();
-  }, [handleJoinPoll]);
-
-  const handleClose = useCallback(() => {
-    dispatch({ type: 'RESET_MODAL' });
-    onClose();
-  }, [onClose]);
-
-  const renderJoiningContent = () => (
-    <div className="space-y-4">
-      <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold text-secondary-foreground">
-          Join Poll to Vote
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          {pollName ? `Join "${pollName}" to participate` : `Join Poll #${pollId} to participate`}
-        </p>
-      </div>
-
-      {/* Error Display */}
-      {state.error && (
-        <ErrorDisplay 
-          error={state.error} 
-          onRetry={handleRetry}
-          onDismiss={() => dispatch({ type: 'CLEAR_ERROR' })}
-        />
-      )}
-
-      {/* Processing State */}
-      {state.isProcessing && !state.error && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-secondary-foreground">
-                {state.stepDetails?.label ?? 'Processing...'}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {state.progress}%
-              </span>
-            </div>
-            <Progress value={state.progress} className="h-2" />
-            
-            {state.subProgress !== undefined && state.subProgress > 0 && (
-              <Progress value={state.subProgress} className="h-1 opacity-60" />
-            )}
-          </div>
-
-          {state.stepDetails && (
-            <div className="text-center space-y-1">
-              <p className="text-sm text-muted-foreground">
-                {state.stepDetails.description}
-              </p>
-              {state.stepDetails.expectedDuration && (
-                <p className="text-xs text-muted-foreground opacity-75">
-                  Expected time: {state.stepDetails.expectedDuration}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Dynamic Info Display */}
-          {state.displayInfo && (
-            <InfoDisplay info={state.displayInfo} />
-          )}
-
-          {state.joinStep === 'completed' && (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 text-green-600 mb-2">
-                ✓
-              </div>
-              <p className="text-sm font-medium text-secondary-foreground">
-                Successfully joined the poll!
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Transitioning to voting...
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Initial State */}
-      {!state.isProcessing && !state.error && (
-        <div className="space-y-4 text-center">
-          <InfoDisplay 
-            info={{
-              type: 'tip',
-              content: 'Join to participate in private voting with zero-knowledge proofs.',
-              variant: 'info'
-            }}
-          />
-          
-          <Button 
-            onClick={() => { void handleJoinPoll(); }}
-            className="w-full"
-            disabled={state.isProcessing}
-          >
-            Join Poll
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderVotingContent = () => {
-
-    return (
-      <div className="space-y-6">
-        <div className="text-center space-y-2">
-          <h3 className="text-lg font-semibold text-secondary-foreground">
-            Cast Your Vote
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {pollName ? `Vote in "${pollName}"` : `Vote in Poll #${pollId}`}
-          </p>
-        </div>
-
-        {/* Error Display */}
-        {state.error && (
-          <ErrorDisplay 
-            error={state.error} 
-            onRetry={() => { /* Handle retry for voting */ }}
-            onDismiss={() => dispatch({ type: 'CLEAR_ERROR' })}
-          />
-        )}
-
-        {/* Processing State */}
-        {state.isProcessing && (
-          <div className="text-center space-y-4">
-            <Progress value={75} className="h-2" />
-            {state.displayInfo && (
-              <InfoDisplay info={state.displayInfo} />
-            )}
-          </div>
-        )}
-
-        {/* Simplified Voting Interface */}
-        {!state.isProcessing && !state.error && (
-          <div className="space-y-4 text-center">
-            <InfoDisplay 
-              info={{
-                type: 'tip',
-                content: 'You have successfully joined this poll. Voting functionality will be available soon.',
-                variant: 'success'
-              }}
-            />
-            
-            <div className="flex gap-3">
-              <Button variant="secondary" onClick={handleClose} className="flex-1">
-                Close
-              </Button>
-              <Button 
-                onClick={() => { void handleVote(); }} 
-                className="flex-1"
-              >
-                Continue to Vote
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
   };
 
-  const renderCompletedContent = () => (
-    <div className="space-y-6 text-center">
-      <div className="space-y-2">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-green-100 text-green-600 text-2xl mb-4">
-          ✓
-        </div>
-        <h3 className="text-lg font-semibold text-secondary-foreground">
-          Vote Submitted!
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Your vote has been successfully recorded using zero-knowledge proofs.
-        </p>
-      </div>
+  const handleClose = () => {
+    if (!isProcessing) {
+      onClose();
+      setTimeout(() => {
+        setCurrentStep(0);
+        setError(null);
+        setDownloadedArtifacts(null);
+      }, 200);
+    }
+  };
 
-      <Button onClick={handleClose} className="w-full">
-        Close
-      </Button>
-    </div>
-  );
+  const handleDone = () => {
+    handleClose();
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <Download className="h-8 w-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-secondary-foreground">Download Artifacts</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Download the required zk-SNARK artifacts for generating proofs. These files enable secure and private voting.
+              </p>
+            </div>
+            <Button
+              onClick={() => void handleDownloadArtifacts()}
+              disabled={isProcessing}
+              className="w-full rounded-sm"
+              size="lg"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Downloading artifacts...
+                </>
+              ) : (
+                'Download Artifacts'
+              )}
+            </Button>
+          </div>
+        );
+
+      case 1:
+        return (
+          <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <Shield className="h-8 w-8 text-blue-600" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-secondary-foreground">Generate Proof</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Generate a cryptographic proof that verifies your eligibility to join this poll without revealing your identity.
+              </p>
+              {downloadedArtifacts && (
+                <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-md px-2 py-1 inline-block">
+                  ✓ Using {Object.keys(downloadedArtifacts).length} artifact files
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={() => void handleGenerateProof()}
+              disabled={isProcessing}
+              className="w-full rounded-sm"
+              size="lg"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating Proof...
+                </>
+              ) : (
+                'Generate Proof'
+              )}
+            </Button>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
+            <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+              <Send className="h-8 w-8 text-orange-600" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-secondary-foreground">Submit Transaction</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Submit your join transaction to the blockchain with your cryptographic proof.
+              </p>
+            </div>
+            <Button
+              onClick={() => void handleSubmitTransaction()}
+              disabled={isProcessing}
+              className="w-full rounded-sm"
+              size="lg"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting Transaction...
+                </>
+              ) : (
+                'Submit Transaction'
+              )}
+            </Button>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-green-700">Joined Successfully!</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                🎉 You have successfully joined {poll.name ? `"${poll.name}"` : `Poll #${poll.id}`}! You can now cast your vote securely and privately.
+              </p>
+            </div>
+            <Button
+              onClick={handleDone}
+              className="w-full rounded-sm bg-green-600 hover:bg-green-700"
+              size="lg"
+            >
+              Start Voting
+            </Button>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-secondary-foreground">
-            {state.modalState === 'joining' && 'Join Poll'}
-            {state.modalState === 'voting' && 'Vote'}
-            {state.modalState === 'completed' && 'Complete'}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="py-4">
-          {state.modalState === 'joining' && renderJoiningContent()}
-          {state.modalState === 'voting' && renderVotingContent()}
-          {state.modalState === 'completed' && renderCompletedContent()}
+      <DialogContent className="rounded-lg border bg-secondary shadow-lg sm:max-w-md max-h-[90vh] overflow-hidden">
+        <div className="flex flex-col h-full">
+          {/* Fixed Header with Progress */}
+          <div className="flex-shrink-0 p-6 pb-4">
+            <div className="flex justify-center items-center">
+              <div className="flex items-center space-x-4">
+                {STEPS.map((step, index) => (
+                  <div key={step.id} className="flex flex-col items-center">
+                    <div className={`w-12 h-1.5 rounded-full transition-all duration-300 ${
+                      index <= currentStep ? 'bg-primary' : 'bg-muted'
+                    }`} />
+                    <span className={`text-xs mt-2 transition-colors duration-300 ${
+                      index <= currentStep ? 'text-primary font-medium' : 'text-muted-foreground'
+                    }`}>
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable Content Area */}
+          <div className="flex-1 px-6 pb-4 overflow-y-auto">
+            <div className="flex flex-col">
+              {/* Step Content - Fixed height to prevent jumping */}
+              <div className="min-h-[300px] flex items-center justify-center">
+                {renderStepContent()}
+              </div>
+
+              {/* Error Display - Fixed within content area */}
+              <div className="min-h-0">
+                {error && (
+                  <div className="mt-6 rounded-lg bg-red-50 border border-red-200 p-3 flex items-start gap-2 transition-all duration-300 animate-in slide-in-from-top-2">
+                    <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-red-700 flex-1">
+                      <p className="font-medium">Error</p>
+                      <p className="mt-1 break-words">{error}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Fixed Footer with Cancel Button */}
+          {currentStep < 3 && (
+            <div className="flex-shrink-0 px-6 pb-6 pt-2 border-t border-muted">
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  onClick={handleClose}
+                  disabled={isProcessing}
+                  className="text-muted-foreground hover:text-secondary-foreground"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

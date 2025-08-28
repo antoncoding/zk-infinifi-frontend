@@ -191,8 +191,7 @@ export default function PollDetailPage() {
           <JoinAndVoteModal
             isOpen={isVoteModalOpen}
             onClose={() => setIsVoteModalOpen(false)}
-            pollId={pollId}
-            pollName={pollConfig.name}
+            poll={pollConfig}
           />
           
           <RegistrationModal

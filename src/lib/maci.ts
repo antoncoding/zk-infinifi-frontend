@@ -1,3 +1,9 @@
+import { getClient } from "@/utils/rpc";
+import { IPollJoiningArtifacts } from "node_modules/@maci-protocol/sdk/build/ts/proof/types";
+import { Address, getContract } from "viem";
+import { poolAbi } from "@/abis/poll";
+import { SupportedNetworks } from "@/utils/networks";
+
 // MACI configuration
 export const MACI_CONFIG = {
   subgraphUrl: 'https://api.studio.thegraph.com/query/94369/maci/v0.0.1',
@@ -42,28 +48,12 @@ export async function getPollFromSubgraph(pollId: string) {
       poll(id: $pollId) {
         id
         pollId
-        coordinatorPubKey
         mode
         duration
         startDate
         endDate
-        numSignups
+        totalSignups
         numMessages
-        voiceCreditFactor
-        stateTreeDepth
-        messageTreeDepth
-        voteOptionTreeDepth
-        messages {
-          id
-          msgChainLength
-          timestamp
-        }
-        signups {
-          id
-          pubKey
-          voiceCreditBalance
-          timestamp
-        }
       }
     }
   `;
@@ -96,13 +86,99 @@ export async function isUserRegisteredOnMaci(pubKeyX: bigint, pubKeyY: bigint): 
   }
 }
 
-// Legacy function for backward compatibility - will be removed
-export async function hasUserJoinedPoll(
-  pollId: string,
-  userPubKey: string
-): Promise<boolean> {
-  // This is a placeholder - in the real implementation, we would need to parse
-  // the userPubKey and extract x,y coordinates, then use isUserRegisteredOnMaci
-  console.warn('hasUserJoinedPoll is deprecated, use isUserRegisteredOnMaci instead');
-  return false;
+
+/**
+ * Get the url of the poll joining artifacts
+ *
+ * @param testing - Whether to get the testing artifacts
+ * @param stateTreeDepth - The depth of the state tree
+ * @returns The url of the poll joining artifacts
+ */
+export const getPollJoiningArtifactsUrl = (testing: boolean, stateTreeDepth: number): { zKeyUrl: string; wasmUrl: string } => {
+  if (testing) {
+    return {
+      zKeyUrl: `https://maci-develop-fra.s3.eu-central-1.amazonaws.com/v3.0.0/browser-poll-join/testing/PollJoining_${stateTreeDepth}_test.0.zkey`,
+      wasmUrl: `https://maci-develop-fra.s3.eu-central-1.amazonaws.com/v3.0.0/browser-poll-join/testing/PollJoining_${stateTreeDepth}_test.wasm`,
+    };
+  }
+
+  return {
+    zKeyUrl: `https://maci-develop-fra.s3.eu-central-1.amazonaws.com/v3.0.0/browser-poll-join/production/PollJoining_${stateTreeDepth}.0.zkey`,
+    wasmUrl: `https://maci-develop-fra.s3.eu-central-1.amazonaws.com/v3.0.0/browser-poll-join/production/PollJoining_${stateTreeDepth}.wasm`,
+  };
+};
+
+/**
+ * Download the poll joining artifacts for the browser
+ *
+ * @param args - The arguments to download the poll joining artifacts for the browser
+ * @returns The poll joining artifacts
+ */
+export const downloadPollJoiningArtifactsBrowser = async ({
+  testing = false,
+  stateTreeDepth,
+}: {
+  testing: boolean;
+  stateTreeDepth: number;
+}): Promise<IPollJoiningArtifacts> => {
+  const { zKeyUrl, wasmUrl } = getPollJoiningArtifactsUrl(testing, stateTreeDepth);
+
+  const [zKeyResponse, wasmResponse] = await Promise.all([fetch(zKeyUrl), fetch(wasmUrl)]);
+
+  const zKeyReader = zKeyResponse.body?.getReader();
+  const wasmReader = wasmResponse.body?.getReader();
+
+  if (!zKeyReader || !wasmReader) {
+    throw new Error("Failed to read zKey or wasm");
+  }
+
+  const [zKey, wasm] = await Promise.all([readChunks(zKeyReader), readChunks(wasmReader)]);
+
+  return { zKey, wasm };
+};
+
+/**
+ * Read the chunks of a response
+ *
+ * @param response - The response to read the chunks from
+ * @returns The chunks and the length
+ */
+const readChunks = async (reader: ReadableStreamDefaultReader<Uint8Array>): Promise<Uint8Array> => {
+  let result = await reader.read();
+
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+
+  while (!result.done) {
+    const { value } = result;
+
+    length += value.length;
+    chunks.push(value as unknown as Uint8Array);
+
+    // continue reading
+    // eslint-disable-next-line no-await-in-loop
+    result = await reader.read();
+  }
+
+  const { acc: obj } = chunks.reduce(
+    ({ acc, position }, chunk) => {
+      acc.set(chunk, position);
+
+      return { acc, position: position + chunk.length };
+    },
+    { acc: new Uint8Array(length), position: 0 },
+  );
+
+  return obj;
+};
+
+export async function hasUserJoinedPoll({ poolAddress, nullifier, chainId = SupportedNetworks.BaseSepolia }: { poolAddress: Address, chainId?: number, nullifier: bigint }) {
+  
+  const client = getClient(chainId);
+
+  const contract = getContract({ address: poolAddress, abi: poolAbi, client })
+
+  const joined = await contract.read.pollNullifiers([nullifier])
+
+  return joined
 }
