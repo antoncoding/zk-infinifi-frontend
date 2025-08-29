@@ -32,7 +32,6 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [downloadedArtifacts, setDownloadedArtifacts] = useState<{zKey: Uint8Array, wasm: Uint8Array} | null>(null);
   const [wasmUrl, setWasmUrl] = useState<string|null>(null);
   const [zkeyUrl, setZKeyUrl] = useState<string|null>(null);
   const [proofData, setProofData] = useState<{
@@ -101,8 +100,6 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
         testing: maciConfig.testing,
         stateTreeDepth: maciConfig.stateTreeDepth,
       });
-      
-      setDownloadedArtifacts(artifacts);
 
       // Assuming you have pollWasm and pollJoiningZkey as Uint8Array
       const wasmBlob = new Blob([artifacts.wasm], { type: 'application/wasm' });
@@ -198,7 +195,6 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
       setTimeout(() => {
         setCurrentStep(1);
         setError(null);
-        setDownloadedArtifacts(null);
         setProofData(null);
       }, 200);
     }

@@ -197,8 +197,6 @@ export function usePoll({
       }
     : undefined;
 
-  console.log('mappedExtContracts', mappedExtContracts)
-
   const isLoading = startDate === undefined || endDate === undefined;
 
   return {
