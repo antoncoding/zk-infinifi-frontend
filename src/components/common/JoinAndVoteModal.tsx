@@ -6,7 +6,7 @@ import { Poll } from '@/config/poll';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Shield, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { downloadPollJoiningArtifactsBrowser, generateJoinProof, formatProofForVerifierContract } from '@/lib/maci';
+import { downloadPollJoiningArtifactsBrowser, generateJoinProof } from '@/lib/maci';
 import { getMaciAddress, getMaciConfig } from '@/config/poll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
 import { usePollUserStats } from '@/hooks/usePollUserStats';
@@ -51,22 +51,20 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
     return getMACIKeys(maciAddress, address)
   }, [getMACIKeys, address])
 
-  const { hasJoined, nullifier, joinPoll } = usePollUserStats({
+  const { hasJoined, nullifier, joinPoll, isConfirming } = usePollUserStats({
     poll: poll.pollContract,
     pollId: BigInt(poll.id),
     keyPair: userKeyPair,
+    onTransactionSuccess: () => {
+      setCurrentStep(3);
+      setIsProcessing(false);
+    },
   });
 
   const { stateIndex, stateTreeDepth, totalSignups } = useMaciUserStats({
     maci: maciAddress,
     keyPair: userKeyPair,
   });
-
-  console.log("hasJoined", hasJoined, nullifier)
-  console.log("zkurl", zkeyUrl)
-  console.log("stateIndex", stateIndex)
-  console.log("stateTreeDepth", stateTreeDepth)
-  console.log("totalSignups", totalSignups)
 
   // Check if user has already joined the poll
   useEffect(() => {
@@ -77,11 +75,11 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
         if (hasJoined) {
           setCurrentStep(3); // Skip to final step if already joined
         } else {
-          setCurrentStep(0); // Start from beginning
+          setCurrentStep(0); // Start from beginning (Skip download)
         }
       } catch (error) {
         console.error('Failed to check user join status:', error);
-        setCurrentStep(0);
+        setCurrentStep(1);
       }
     }
 
@@ -131,14 +129,14 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
       setError(null);
       setIsProcessing(true);
       
-      // Generate proof using simplified logic
+      // Generate proof using downloaded artifacts
       const generatedProof = await generateJoinProof({
         maciKeypair: userKeyPair,
         pollId: BigInt(poll.id),
         stateTreeDepth: Number(stateTreeDepth) ?? 10, // fallback to 10 if not available
         maciAddress: maciAddress,
-        zkeyPath: zkeyUrl,
-        wasmPath: wasmUrl,
+        zkeyPath: zkeyUrl, // Use downloaded artifact blob URL
+        wasmPath: wasmUrl, // Use downloaded artifact blob URL
       });
       
       console.log('Generated proof:', generatedProof);
@@ -164,10 +162,10 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
       // Use the latest state root index (total signups - 1)
       const stateRootIndex = Number(totalSignups ?? 0) - 1;
       
-      // Submit join transaction
+      // Submit join transaction - don't advance to step 3 here
+      // The onTransactionSuccess callback will handle that after confirmation
       await joinPoll(proofData.proof, stateRootIndex, userKeyPair.pubKey);
       
-      setCurrentStep(3);
     } catch (err) {
       // Handle different types of errors
       let errorMessage = 'Failed to submit transaction';
@@ -189,17 +187,16 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
       }
       
       setError(errorMessage);
-      console.error('Join transaction error:', err);
-    } finally {
       setIsProcessing(false);
+      console.error('Join transaction error:', err);
     }
   };
 
   const handleClose = () => {
-    if (!isProcessing) {
+    if (!isProcessing && !isConfirming) {
       onClose();
       setTimeout(() => {
-        setCurrentStep(0);
+        setCurrentStep(1);
         setError(null);
         setDownloadedArtifacts(null);
         setProofData(null);
@@ -254,15 +251,20 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Generate a cryptographic proof that verifies your eligibility to join this poll without revealing your identity.
               </p>
-              {downloadedArtifacts && (
+              {wasmUrl && zkeyUrl && (
                 <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-md px-2 py-1 inline-block">
-                  ✓ Using {Object.keys(downloadedArtifacts).length} artifact files
+                  ✓ Artifacts ready for proof generation
+                </div>
+              )}
+              {(!wasmUrl || !zkeyUrl) && (
+                <div className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded-md px-2 py-1 inline-block">
+                  ⚠ Download artifacts first
                 </div>
               )}
             </div>
             <Button
               onClick={() => void handleGenerateProof()}
-              disabled={isProcessing}
+              disabled={isProcessing || !wasmUrl || !zkeyUrl}
               className="w-full rounded-sm"
               size="lg"
             >
@@ -287,16 +289,24 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
             <div className="space-y-2">
               <h3 className="text-xl font-semibold text-secondary-foreground">Submit Transaction</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Submit your join transaction to the blockchain with your cryptographic proof.
+                {isConfirming 
+                  ? 'Waiting for transaction confirmation on the blockchain...'
+                  : 'Submit your join transaction to the blockchain with your cryptographic proof.'
+                }
               </p>
             </div>
             <Button
               onClick={() => void handleSubmitTransaction()}
-              disabled={isProcessing}
+              disabled={isProcessing || isConfirming}
               className="w-full rounded-sm"
               size="lg"
             >
-              {isProcessing ? (
+              {isConfirming ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirming Transaction...
+                </>
+              ) : isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Submitting Transaction...
@@ -389,7 +399,7 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
                 <Button
                   variant="ghost"
                   onClick={handleClose}
-                  disabled={isProcessing}
+                  disabled={isProcessing || isConfirming}
                   className="text-muted-foreground hover:text-secondary-foreground"
                 >
                   Cancel

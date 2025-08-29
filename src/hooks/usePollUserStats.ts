@@ -12,6 +12,8 @@ type PollUserStatsHookResult = {
   hasJoined: boolean;
   nullifier: bigint | null;
   joinPoll: (zkProof: string[], stateRootIndex: number, userPublicKey: PubKey) => Promise<void>;
+  isConfirming: boolean;
+  isConfirmed: boolean;
 };
 
 type Props = {
@@ -20,6 +22,7 @@ type Props = {
   keyPair: Keypair | null;
   refetchInterval?: number;
   chainId?: SupportedNetworks;
+  onTransactionSuccess?: () => void;
 }
 
 export function usePollUserStats({
@@ -28,6 +31,7 @@ export function usePollUserStats({
   keyPair,
   chainId = SupportedNetworks.BaseSepolia,
   refetchInterval = 10000,
+  onTransactionSuccess,
 }: Props): PollUserStatsHookResult {
   
   const { address } = useAccount();
@@ -48,7 +52,7 @@ export function usePollUserStats({
   });
 
 
-  const { sendTransactionAsync } = useTransactionWithToast({
+  const { sendTransactionAsync, isConfirming, isConfirmed } = useTransactionWithToast({
     toastId: 'join-poll',
     pendingText: `Join Pending`,
     successText: 'Join Success',
@@ -56,6 +60,7 @@ export function usePollUserStats({
     chainId,
     pendingDescription: `Joinining Poll ${pollId}`,
     successDescription: `Successfully Joined ${pollId}. You can now cast your vote`,
+    onSuccess: onTransactionSuccess,
   });
 
   const joinPoll = useCallback(async (
@@ -90,5 +95,7 @@ export function usePollUserStats({
     hasJoined: hasJoined ? true : false,
     nullifier,
     joinPoll,
+    isConfirming,
+    isConfirmed,
   };
 }

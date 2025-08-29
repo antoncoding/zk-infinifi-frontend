@@ -31,11 +31,11 @@ export const MACI_TESTING_MODE = true;
 
 export const HARDCODED_POLLS: Poll[] = [
   {
-    id: '8',
-    name: 'Test Poll #8',
-    pollContract: '0x6df46fe382f1Cd902B30C7C0bBE63369cE0b4DCD',
-    messageProcessor: '0x11014f2A70D44b21Be40CEfFCE7fC9DB91140981',
-    tally: '0xC684256D8b1892DB58aEF04f89cAe0fA1459FB43',
+    id: '9',
+    name: 'Test Poll #9',
+    pollContract: '0x7661b769E18645d1F99c5D43D18b2c26D23a00C2',
+    messageProcessor: '0xCdF77b77F06cf9125415d229e775380A925bc365',
+    tally: '0xc97060907345D57e698c64Ec2a9F723Cc5a250CC',
     voteOptions: [
       { id: 0, title: 'Yes', description: 'Vote in favor of the proposal' },
       { id: 1, title: 'No', description: 'Vote against the proposal' },

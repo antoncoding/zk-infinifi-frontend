@@ -1,11 +1,13 @@
-import { getClient } from "@/utils/rpc";
 import { IPollJoiningArtifacts } from "node_modules/@maci-protocol/sdk/build/ts/proof/types";
-import { Address, getContract } from "viem";
-import { pollAbi } from "@/abis/poll";
-import { SupportedNetworks } from "@/utils/networks";
-import { groth16, type PublicSignals, type Groth16Proof, zKey } from "snarkjs";
+
+// @ts-ignore - snarkjs types not available
+import { groth16 } from "snarkjs";
+
 import { poseidon } from "@maci-protocol/crypto";
-import { Keypair } from "@maci-protocol/domainobjs";
+import { Keypair, PrivKey, PubKey } from "@maci-protocol/domainobjs";
+import { hashLeanIMT } from "@maci-protocol/crypto";
+import { LeanIMT } from "@zk-kit/lean-imt";
+import { BigIntVariants, StringifiedBigInts } from "@maci-protocol/crypto/build/ts/types";
 
 export type TCircuitInputs = Record<string, string | bigint | bigint[] | bigint[][] | string[] | bigint[][][]>;
 
@@ -140,83 +142,7 @@ const hashLeftRight = (left: bigint, right: bigint): bigint => {
 };
 
 // Padding key hash (hash of [0, 0])
-const PAD_KEY_HASH = poseidon([0n, 0n]);
-
-class SimpleMerkleTree {
-  private leaves: bigint[] = [];
-  private treeDepth: number;
-
-  constructor(treeDepth: number) {
-    this.treeDepth = treeDepth;
-    // Insert padding key hash first (like MACI does)
-    this.leaves.push(PAD_KEY_HASH);
-  }
-
-  insert(leaf: bigint): void {
-    this.leaves.push(leaf);
-  }
-
-  generateProof(leafIndex: number): MerkleProof {
-    if (leafIndex >= this.leaves.length) {
-      throw new Error("Leaf index out of bounds");
-    }
-
-    const siblings: bigint[] = [];
-    let currentIndex = leafIndex;
-    let currentLevel = [...this.leaves];
-
-    // Build tree level by level and collect siblings
-    while (currentLevel.length > 1) {
-      const nextLevel: bigint[] = [];
-      const isOdd = currentIndex % 2 === 1;
-      
-      // Add sibling
-      if (isOdd) {
-        siblings.push(currentLevel[currentIndex - 1]);
-      } else {
-        const siblingIndex = currentIndex + 1;
-        siblings.push(siblingIndex < currentLevel.length ? currentLevel[siblingIndex] : 0n);
-      }
-
-      // Build next level
-      for (let i = 0; i < currentLevel.length; i += 2) {
-        const left = currentLevel[i];
-        const right = i + 1 < currentLevel.length ? currentLevel[i + 1] : 0n;
-        nextLevel.push(hashLeftRight(left, right));
-      }
-
-      currentLevel = nextLevel;
-      currentIndex = Math.floor(currentIndex / 2);
-    }
-
-    // Pad siblings array to tree depth
-    while (siblings.length < this.treeDepth) {
-      siblings.push(0n);
-    }
-
-    return {
-      siblings: siblings.slice(0, this.treeDepth),
-      index: leafIndex,
-      root: currentLevel[0],
-    };
-  }
-
-  getRoot(): bigint {
-    let currentLevel = [...this.leaves];
-    
-    while (currentLevel.length > 1) {
-      const nextLevel: bigint[] = [];
-      for (let i = 0; i < currentLevel.length; i += 2) {
-        const left = currentLevel[i];
-        const right = i + 1 < currentLevel.length ? currentLevel[i + 1] : 0n;
-        nextLevel.push(hashLeftRight(left, right));
-      }
-      currentLevel = nextLevel;
-    }
-    
-    return currentLevel[0];
-  }
-}
+export const PAD_KEY_HASH = BigInt("1309255631273308531193241901289907343161346846555918942743921933037802809814");
 
 // Build state tree from SignUp events and generate proof for user
 export async function buildStateTreeAndGetProof(
@@ -228,8 +154,11 @@ export async function buildStateTreeAndGetProof(
   // Fetch all SignUp events in order
   const signUpEvents = await getAllSignUpEvents(maciAddress);
 
-  // Create merkle tree
-  const tree = new SimpleMerkleTree(stateTreeDepth);
+  // Create LeanIMT tree with hashLeanIMT function
+  const tree = new LeanIMT(hashLeanIMT);
+  
+  // Insert padding key hash first (like MACI does)
+  tree.insert(PAD_KEY_HASH);
   
   let userStateIndex = -1;
   
@@ -240,7 +169,7 @@ export async function buildStateTreeAndGetProof(
     
     // Check if this is our user's public key
     if (pubKeyX === userPubKeyX && pubKeyY === userPubKeyY) {
-      // Add 1 because index 0 is the padding key
+      // Account for padding key being inserted first
       userStateIndex = index + 1;
     }
     
@@ -252,12 +181,14 @@ export async function buildStateTreeAndGetProof(
   if (userStateIndex === -1) {
     throw new Error("User not found in state tree");
   }
+
+  console.log('user state index', userStateIndex)
   
-  // Generate proof for user's position
-  const proof = tree.generateProof(userStateIndex);
+  // Generate proof for user's position using LeanIMT
+  const leanProof = tree.generateProof(userStateIndex);
   
   return {
-    proof,
+    proof: leanProof,
     userStateIndex,
   };
 }
@@ -266,12 +197,12 @@ export async function buildStateTreeAndGetProof(
 export function createJoiningCircuitInputs(
   proof: MerkleProof,
   stateTreeDepth: number,
-  userPrivateKey: bigint,
-  userPubKeyX: bigint,
-  userPubKeyY: bigint,
+  userPrivateKey: PrivKey,
+  userPublicKey: PubKey,
   pollId: bigint
 ): TCircuitInputs {
   // Pad siblings to state tree depth
+  const siblingsLength = proof.siblings.length;
   const siblings = [...proof.siblings];
   while (siblings.length < stateTreeDepth) {
     siblings.push(0n);
@@ -281,23 +212,24 @@ export function createJoiningCircuitInputs(
   const siblingsArray = siblings.map(sibling => [sibling]);
   
   // Create nullifier from private key and poll ID
-  const nullifier = poseidon([userPrivateKey, pollId]);
+  const inputNullifier = BigInt(userPrivateKey.asCircuitInputs());
+  const nullifier = poseidon([inputNullifier, pollId]);
   
-  // Actual state tree depth is the number of non-zero siblings
-  const actualStateTreeDepth = BigInt(proof.siblings.filter(s => s !== 0n).length);
   
   const circuitInputs = {
-    privateKey: userPrivateKey,
-    pollPublicKey: [userPubKeyX, userPubKeyY],
+    privateKey: userPrivateKey.asCircuitInputs(),
+    pollPublicKey: userPublicKey.asCircuitInputs(),
     siblings: siblingsArray,
     index: BigInt(proof.index),
     nullifier: nullifier,
     stateRoot: proof.root,
-    actualStateTreeDepth: actualStateTreeDepth,
+    actualStateTreeDepth: BigInt(siblingsLength),
     pollId: pollId,
   };
+
+  console.log('circuitInputs', circuitInputs)
   
-  return circuitInputs;
+  return stringifyBigInts(circuitInputs) as unknown as TCircuitInputs;
 }
 
 
@@ -329,7 +261,7 @@ export const getPollJoiningArtifactsUrl = (testing: boolean, stateTreeDepth: num
  * @returns The poll joining artifacts
  */
 export const downloadPollJoiningArtifactsBrowser = async ({
-  testing = false,
+  testing = true,
   stateTreeDepth,
 }: {
   testing: boolean;
@@ -422,9 +354,8 @@ export const generateJoinProof = async ({
   const circuitInputs = createJoiningCircuitInputs(
     proof,
     stateTreeDepth,
-    BigInt(maciKeypair.privKey.asCircuitInputs()), // private key
-    userPubKeyX,
-    userPubKeyY,
+    maciKeypair.privKey, // private key
+    maciKeypair.pubKey,
     pollId
   );
 
@@ -450,6 +381,9 @@ export const generateJoinProof = async ({
  * which can be passed to the Groth16 verifier contract.
  */
 export function formatProofForVerifierContract(proof: any): string[] {
+
+  console.log('original proof', proof)
+
   return [
     proof.pi_a[0].toString(),
     proof.pi_a[1].toString(), 
@@ -462,3 +396,74 @@ export function formatProofForVerifierContract(proof: any): string[] {
   ];
 }
 
+
+
+/**
+ * Given an input of bigint values, convert them to their string representations
+ * @param input - The input to convert
+ * @returns The input with bigint values converted to string
+ */
+export const stringifyBigInts = (input: BigIntVariants): StringifiedBigInts => {
+  if (typeof input === "bigint") {
+    return input.toString();
+  }
+
+  if (input instanceof Uint8Array) {
+    return fromRprLE(input, 0);
+  }
+
+  if (Array.isArray(input)) {
+    return input.map(stringifyBigInts);
+  }
+
+  if (input === null) {
+    return null;
+  }
+
+  if (typeof input === "object") {
+    return Object.entries(input).reduce<Record<string, StringifiedBigInts>>((acc, [key, value]) => {
+      acc[key] = stringifyBigInts(value);
+      return acc;
+    }, {});
+  }
+
+  return input;
+};
+
+
+/**
+ * Parses a buffer with Little Endian Representation
+ * @param buff - The buffer to parse
+ * @param o - The offset to start from
+ * @param n8 - The byte length
+ * @returns The parsed buffer as a string
+ */
+export const fromRprLE = (buff: ArrayBufferView, o = 0, n8: number = buff.byteLength): string => {
+  const v = new Uint32Array(buff.buffer, buff.byteOffset + o, n8 / 4);
+  const a: string[] = new Array<string>(n8 / 4);
+  v.forEach((ch, i) => {
+    a[a.length - i - 1] = ch.toString(16).padStart(8, "0");
+  });
+  return fromString(a.join(""), 16).toString();
+};
+
+/**
+ * Converts a string to a bigint using the given radix
+ * @param str - The string to convert
+ * @param radix - The radix to use
+ * @returns The converted string as a bigint
+ */
+export const fromString = (str: string, radix: number): bigint => {
+  if (!radix || radix === 10) {
+    return BigInt(str);
+  }
+
+  if (radix === 16) {
+    if (str.startsWith("0x")) {
+      return BigInt(str);
+    }
+    return BigInt(`0x${str}`);
+  }
+
+  return BigInt(str);
+};
