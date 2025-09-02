@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { getPollById } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import { useMACIRegistration } from '@/hooks/useMACIRegistration';
-import { usePollUserStats } from '@/hooks/usePollUserStats';
+import { useJoinPoll } from '@/hooks/useJoinPoll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
 import { getMaciAddress } from '@/config/poll';
 import { useAccount } from 'wagmi';
@@ -62,7 +62,7 @@ export default function PollDetailPage() {
     return getMACIKeys(maciAddress, address)
   }, [getMACIKeys, maciAddress, address]);
   
-  const { hasJoined, refresh: refreshPollStats } = usePollUserStats({
+  const { hasJoined, refresh: refreshPollStats } = useJoinPoll({
     poll: pollConfig?.pollContract ?? '0x',
     pollId: BigInt(pollConfig?.id ?? '0'),
     keyPair: userKeyPair,

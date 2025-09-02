@@ -5,10 +5,10 @@ import { useAccount } from 'wagmi';
 import { Poll } from '@/config/poll';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Vote, Send, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Vote, Send, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
-import { usePollUserStats } from '@/hooks/usePollUserStats';
-import { usePoll } from '@/hooks/usePoll';
+import { useVotePoll } from '@/hooks/useVotePoll';
+import { usePollSharedData } from '@/hooks/usePollSharedData';
 import { getMaciAddress } from '@/config/poll';
 
 const maciAddress = getMaciAddress();
@@ -21,7 +21,6 @@ type VoteModalProps = {
 };
 
 const STEPS = [
-  { id: 'downloading', title: 'Download Artifacts', description: 'Download zk-SNARK artifacts for voting', icon: Download, label: 'Download' },
   { id: 'voting', title: 'Cast Your Vote', description: 'Choose your preferred option', icon: Vote, label: 'Vote' },
   { id: 'submitting', title: 'Submit Vote', description: 'Generate proof and submit vote transaction', icon: Send, label: 'Submit' }
 ];
@@ -39,15 +38,16 @@ export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalPro
     return getMACIKeys(maciAddress, address)
   }, [getMACIKeys, address])
 
-  const { hasJoined } = usePollUserStats({
+  const { hasJoined, vote } = useVotePoll({
     poll: poll.pollContract,
     pollId: BigInt(poll.id),
     keyPair: userKeyPair,
   });
 
-  const { voteOptions, coordinatorPublicKey } = usePoll({ 
-    address: poll.pollContract,
-    refetchInterval: 5000 
+  const { voteOptions } = usePollSharedData({
+    poll: poll.pollContract,
+    pollId: BigInt(poll.id),
+    keyPair: userKeyPair,
   });
 
   // Check if user has joined the poll
@@ -63,46 +63,19 @@ export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalPro
     }
   }, [isOpen, hasJoined]);
 
-  const handleDownloadArtifacts = async () => {
-    if (!address) return;
-
-    try {
-      setError(null);
-      setIsProcessing(true);
-      
-      // TODO: Implement voting artifacts download
-      // For now, simulate the download
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setCurrentStep(1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to download artifacts');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleVoteSelection = (optionIndex: number) => {
     setSelectedVoteOption(optionIndex);
-    setCurrentStep(2);
+    setCurrentStep(1);
   };
 
   const handleSubmitVote = async () => {
-    if (!address || !userKeyPair || !coordinatorPublicKey || selectedVoteOption === null) return;
+    if (selectedVoteOption === null) return;
 
     try {
       setError(null);
       setIsProcessing(true);
       
-      // TODO: Implement vote submission with MACI message generation and proof
-      // This would involve:
-      // 1. Creating a MACI message with the vote option
-      // 2. Encrypting the message with coordinator's public key  
-      // 3. Generating a zk proof for the vote
-      // 4. Calling publishMessage on the poll contract
-      
-      // For now, simulate the vote submission
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await vote(selectedVoteOption);
       
       // On success
       onVoteSuccess?.();
@@ -143,36 +116,6 @@ export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalPro
       case 0:
         return (
           <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <Download className="h-8 w-8 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-secondary-foreground">Download Artifacts</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Download the required zk-SNARK artifacts for generating vote proofs. These files enable secure and private voting.
-              </p>
-            </div>
-            <Button
-              onClick={() => void handleDownloadArtifacts()}
-              disabled={isProcessing}
-              className="w-full rounded-sm"
-              size="lg"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Downloading artifacts...
-                </>
-              ) : (
-                'Download Artifacts'
-              )}
-            </Button>
-          </div>
-        );
-
-      case 1:
-        return (
-          <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
               <Vote className="h-8 w-8 text-blue-600" />
             </div>
@@ -202,7 +145,7 @@ export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalPro
           </div>
         );
 
-      case 2:
+      case 1:
         return (
           <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
             <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
@@ -243,6 +186,7 @@ export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalPro
             </Button>
           </div>
         );
+
 
       default:
         return null;

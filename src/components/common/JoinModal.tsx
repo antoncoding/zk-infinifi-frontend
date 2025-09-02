@@ -9,7 +9,7 @@ import { Download, Shield, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { downloadPollJoiningArtifactsBrowser, generateJoinProof } from '@/lib/maci';
 import { getMaciAddress, getMaciConfig } from '@/config/poll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
-import { usePollUserStats } from '@/hooks/usePollUserStats';
+import { useJoinPoll } from '@/hooks/useJoinPoll';
 import { useMaciUserStats } from '@/hooks/useMaciUserStats';
 
 const maciAddress = getMaciAddress();
@@ -50,7 +50,7 @@ export function JoinModal({ isOpen, onClose, poll, onJoinSuccess }: JoinModalPro
     return getMACIKeys(maciAddress, address)
   }, [getMACIKeys, address])
 
-  const { hasJoined, joinPoll, isConfirming } = usePollUserStats({
+  const { hasJoined, joinPoll, isConfirming } = useJoinPoll({
     poll: poll.pollContract,
     pollId: BigInt(poll.id),
     keyPair: userKeyPair,

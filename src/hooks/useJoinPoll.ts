@@ -1,21 +1,19 @@
 import { Address, encodeFunctionData } from 'viem';
-import { useReadContract, useAccount } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { pollAbi } from '@/abis/poll';
 import { SupportedNetworks } from '@/utils/networks';
 import { Keypair, PubKey } from '@maci-protocol/domainobjs';
-import { EcdhSharedKey, poseidon } from '@maci-protocol/crypto';
 import { useTransactionWithToast } from './useTransactionWithToast';
-import { useCallback, useMemo } from 'react';
+import { usePollSharedData } from './usePollSharedData';
+import { useCallback } from 'react';
 import { DEFAULT_IVCP_DATA, DEFAULT_SIGNUP_POLICY_DATA } from '@/lib/maci';
-import { genEcdhSharedKey } from "@maci-protocol/crypto";
 
-type PollUserStatsHookResult = {
+type JoinPollHookResult = {
   hasJoined: boolean;
   nullifier: bigint | null;
   joinPoll: (zkProof: string[], stateRootIndex: number, userPublicKey: PubKey) => Promise<void>;
   isConfirming: boolean;
   isConfirmed: boolean;
-  sharedECDHKey: EcdhSharedKey | undefined;
   refresh: (() => Promise<unknown>) | undefined;
 };
 
@@ -28,32 +26,25 @@ type Props = {
   onTransactionSuccess?: () => void;
 }
 
-export function usePollUserStats({
+export function useJoinPoll({
   poll,
   pollId,
   keyPair,
   chainId = SupportedNetworks.BaseSepolia,
-  refetchInterval = 10000,
+  refetchInterval = 30000, // Increased to 30 seconds
   onTransactionSuccess,
-}: Props): PollUserStatsHookResult {
+}: Props): JoinPollHookResult {
   
   const { address } = useAccount();
   
-  const nullifier = keyPair ? poseidon([BigInt(keyPair.privKey.asCircuitInputs()), BigInt(pollId)]) : null;
-
-  // Read start and end dates
-  const { data: hasJoined, refetch: refetchHasJoined } = useReadContract({
-    abi: pollAbi,
-    functionName: 'pollNullifiers',
-    args: [nullifier],
-    address: poll,
-    query: {
-      enabled: !!poll && !!nullifier,
-      refetchInterval,
-    },
-    chainId: chainId,
+  // Use shared data hook instead of individual calls
+  const { hasJoined, nullifier, refresh } = usePollSharedData({
+    poll,
+    pollId,
+    keyPair,
+    refetchInterval,
+    chainId,
   });
-
 
   const { sendTransactionAsync, isConfirming, isConfirmed } = useTransactionWithToast({
     toastId: 'join-poll',
@@ -61,31 +52,10 @@ export function usePollUserStats({
     successText: 'Join Success',
     errorText: 'Join Error',
     chainId,
-    pendingDescription: `Joinining Poll ${pollId}`,
+    pendingDescription: `Joining Poll ${pollId}`,
     successDescription: `Successfully Joined ${pollId}. You can now cast your vote`,
     onSuccess: onTransactionSuccess,
   });
-
-
-  const { data: coordinatorPublicKeys } = useReadContract({
-    abi: pollAbi,
-    functionName: 'coordinatorPublicKey',
-    address,
-    query: {
-      enabled: !!address,
-      refetchInterval,
-    },
-    chainId,
-  });
-
-  const sharedECDHKey = useMemo(() => {
-    // shared ECDH Key is calculated with coordinator pub key and our user priv key
-    if (!coordinatorPublicKeys || !keyPair?.privKey) return undefined
-
-    const coordinatorPubkey = new PubKey(coordinatorPublicKeys as [bigint, bigint])
-    return genEcdhSharedKey(keyPair?.privKey.rawPrivKey, coordinatorPubkey.rawPubKey)
-
-  }, [coordinatorPublicKeys, keyPair])
 
   const joinPoll = useCallback(async (
     zkProof: string[], 
@@ -116,12 +86,11 @@ export function usePollUserStats({
   }, [address, poll, nullifier, sendTransactionAsync, chainId]);
 
   return {
-    hasJoined: hasJoined ? true : false,
+    hasJoined,
     nullifier,
     joinPoll,
     isConfirming,
     isConfirmed,
-    sharedECDHKey,
-    refresh: refetchHasJoined,
+    refresh,
   };
 }
