@@ -17,6 +17,7 @@ type VoteModalProps = {
   isOpen: boolean;
   onClose: () => void;
   poll: Poll;
+  voiceCredits?: bigint;
   onVoteSuccess?: () => void;
 };
 
@@ -25,7 +26,7 @@ const STEPS = [
   { id: 'submitting', title: 'Submit Vote', description: 'Generate proof and submit vote transaction', icon: Send, label: 'Submit' }
 ];
 
-export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalProps) {
+export function VoteModal({ isOpen, onClose, poll, voiceCredits = BigInt(1), onVoteSuccess }: VoteModalProps) {
   const { address } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +76,7 @@ export function VoteModal({ isOpen, onClose, poll, onVoteSuccess }: VoteModalPro
       setError(null);
       setIsProcessing(true);
       
-      await vote(selectedVoteOption);
+      await vote(selectedVoteOption, voiceCredits);
       
       // On success
       onVoteSuccess?.();

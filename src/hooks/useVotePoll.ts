@@ -15,7 +15,7 @@ import { MACI_CONTRACT_ADDRESS } from '@/config/poll';
 type VotePollHookResult = {
   hasJoined: boolean;
   nullifier: bigint | null;
-  vote: (voteOptionIndex: number) => Promise<void>;
+  vote: (voteOptionIndex: number, voiceCredits?: bigint) => Promise<void>;
   isConfirming: boolean;
   isConfirmed: boolean;
   sharedECDHKey: EcdhSharedKey | undefined;
@@ -56,8 +56,6 @@ export function useVotePoll({
     chainId,
   });
 
-  console.log('stateIndex', coordinatorPublicKey, stateIndex)
-
   // Calculate shared ECDH key with coordinator
   const sharedECDHKey = useMemo(() => {
     if (!coordinatorPublicKey || !keyPair?.privKey) return undefined
@@ -76,7 +74,7 @@ export function useVotePoll({
     onSuccess: onTransactionSuccess,
   });
 
-  const vote = useCallback(async(voteOptionIndex: number) => {
+  const vote = useCallback(async(voteOptionIndex: number, voiceCredits = BigInt(1)) => {
     if (!keyPair || !nullifier || !coordinatorPublicKey || !address) {
       throw new Error('Required data not available for voting');
     }
@@ -94,10 +92,12 @@ export function useVotePoll({
       BigInt(stateIndex), // stateIndex
       keyPair.pubKey, // newPubKey (user's public key)
       BigInt(voteOptionIndex), // voteOptionIndex
-      BigInt(1), // newVoteWeight (typically 1 for simple votes)
+      voiceCredits, // newVoteWeight (user's voice credits)
       getUserNonce(address!, pollId), // nonce (user's secret counter)
       pollId,
     );
+
+    console.log("voting with command", command)
 
     // Sign the command with user's private key
     const signature = command.sign(keyPair.privKey);

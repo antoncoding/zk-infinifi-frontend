@@ -7,7 +7,8 @@ import { usePoll } from '@/hooks/usePoll';
 import { useMACIRegistration } from '@/hooks/useMACIRegistration';
 import { useJoinPoll } from '@/hooks/useJoinPoll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
-import { getMaciAddress } from '@/config/poll';
+import { getMaciAddress, getInitialVoiceCreditProxyAddress } from '@/config/poll';
+import { useVoiceCredit } from '@/hooks/useVoiceCredit';
 import { useAccount } from 'wagmi';
 import Header from '@/components/layout/header/Header';
 import { Button, AddressBadge, KeyBadge, JoinModal, VoteModal, RegistrationModal } from '@/components/common';
@@ -108,6 +109,11 @@ export default function PollDetailPage() {
     refetchInterval: 5000 
   });
 
+  // Get voice credits for the user (after extContracts is available)
+  const { voiceCredits } = useVoiceCredit({
+    proxyAddress: extContracts?.initialVoiceCreditProxy ?? getInitialVoiceCreditProxyAddress(),
+  });
+
   if (!pollConfig) {
     return (
       <div className="bg-main flex min-h-screen flex-col">
@@ -184,6 +190,7 @@ export default function PollDetailPage() {
               <InfoItem label="Max Signups" value={maxSignups} />
               <InfoItem label="Vote Options" value={voteOptions} />
               <InfoItem label="Messages" value={numMessages} />
+              {address && <InfoItem label="Your Voice Credits" value={voiceCredits.toString()} />}
             </PollInfoBox>
 
             {/* Contract Addresses */}
@@ -235,6 +242,7 @@ export default function PollDetailPage() {
             isOpen={isVoteModalOpen}
             onClose={() => setIsVoteModalOpen(false)}
             poll={pollConfig}
+            voiceCredits={voiceCredits}
             onVoteSuccess={() => {
               setIsVoteModalOpen(false);
             }}

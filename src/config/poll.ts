@@ -25,6 +25,11 @@ export type MaciConfig = {
 // Global MACI configuration - assuming single MACI contract for now
 export const MACI_CONTRACT_ADDRESS: Address = '0x9c8576DF269DAa79497473A763eB2736091652A0';
 
+// Helper function to get InitialVoiceCreditProxy address from poll's external contracts
+export function getInitialVoiceCreditProxyAddress(): Address {
+  return '0xcc71E493824Bbbc246F1339b98c6F326Fd29E937'
+}
+
 // MACI circuit configuration
 export const MACI_STATE_TREE_DEPTH = 10;
 export const MACI_TESTING_MODE = true;
