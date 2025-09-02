@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { Poll } from '@/config/poll';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Shield, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Shield, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { downloadPollJoiningArtifactsBrowser, generateJoinProof } from '@/lib/maci';
 import { getMaciAddress, getMaciConfig } from '@/config/poll';
 import { useUserMACIKey } from '@/hooks/useUserMACIKey';
@@ -14,20 +14,20 @@ import { useMaciUserStats } from '@/hooks/useMaciUserStats';
 
 const maciAddress = getMaciAddress();
 
-type JoinAndVoteModalProps = {
+type JoinModalProps = {
   isOpen: boolean;
   onClose: () => void;
   poll: Poll;
+  onJoinSuccess?: () => void;
 };
 
 const STEPS = [
   { id: 'downloading', title: 'Download Artifacts', description: 'Download zk-SNARK artifacts for joining', icon: Download, label: 'Download' },
   { id: 'generating', title: 'Generate Proof', description: 'Generate cryptographic proof to join poll', icon: Shield, label: 'Generate' },
-  { id: 'submitting', title: 'Submit Transaction', description: 'Submit join transaction to blockchain', icon: Send, label: 'Submit' },
-  { id: 'done', title: 'Joined Successfully!', description: 'Ready to cast your vote', icon: CheckCircle, label: 'Complete' }
+  { id: 'submitting', title: 'Submit Transaction', description: 'Submit join transaction to blockchain', icon: Send, label: 'Submit' }
 ];
 
-export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProps) {
+export function JoinModal({ isOpen, onClose, poll, onJoinSuccess }: JoinModalProps) {
   const { address, isConnected } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -50,43 +50,35 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
     return getMACIKeys(maciAddress, address)
   }, [getMACIKeys, address])
 
-  const { hasJoined, nullifier, joinPoll, isConfirming } = usePollUserStats({
+  const { hasJoined, joinPoll, isConfirming } = usePollUserStats({
     poll: poll.pollContract,
     pollId: BigInt(poll.id),
     keyPair: userKeyPair,
     onTransactionSuccess: () => {
-      setCurrentStep(3);
       setIsProcessing(false);
+      onJoinSuccess?.();
+      onClose();
     },
   });
 
-  const { stateIndex, stateTreeDepth, totalSignups } = useMaciUserStats({
+  const { stateTreeDepth, totalSignups } = useMaciUserStats({
     maci: maciAddress,
     keyPair: userKeyPair,
   });
 
   // Check if user has already joined the poll
   useEffect(() => {
-    async function checkUserJoined() {
-      if (!isConnected || !address || !isOpen) return;
-
-      try {
-        if (hasJoined) {
-          setCurrentStep(3); // Skip to final step if already joined
-        } else {
-          setCurrentStep(0); // Start from beginning (Skip download)
-        }
-      } catch (error) {
-        console.error('Failed to check user join status:', error);
-        setCurrentStep(1);
+    if (isOpen) {
+      if (hasJoined) {
+        // If user has already joined, close the modal
+        onClose();
+      } else {
+        // Start from beginning
+        setCurrentStep(0);
+        setError(null);
       }
     }
-
-    if (isOpen) {
-      void checkUserJoined();
-      setError(null);
-    }
-  }, [isConnected, address, isOpen, hasJoined]);
+  }, [isConnected, address, isOpen, hasJoined, onClose]);
 
   const handleDownloadArtifacts = async () => {
     if (!address) return;
@@ -193,16 +185,13 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
     if (!isProcessing && !isConfirming) {
       onClose();
       setTimeout(() => {
-        setCurrentStep(1);
+        setCurrentStep(0);
         setError(null);
         setProofData(null);
       }, 200);
     }
   };
 
-  const handleDone = () => {
-    handleClose();
-  };
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -314,27 +303,6 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
           </div>
         );
 
-      case 3:
-        return (
-          <div className="w-full max-w-sm mx-auto text-center space-y-6 transition-all duration-300 ease-in-out">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-green-700">Joined Successfully!</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                🎉 You have successfully joined {poll.name ? `"${poll.name}"` : `Poll #${poll.id}`}! You can now cast your vote securely and privately.
-              </p>
-            </div>
-            <Button
-              onClick={handleDone}
-              className="w-full rounded-sm bg-green-600 hover:bg-green-700"
-              size="lg"
-            >
-              Start Voting
-            </Button>
-          </div>
-        );
 
       default:
         return null;
@@ -389,24 +357,22 @@ export function JoinAndVoteModal({ isOpen, onClose, poll }: JoinAndVoteModalProp
           </div>
 
           {/* Fixed Footer with Cancel Button */}
-          {currentStep < 3 && (
-            <div className="flex-shrink-0 px-6 pb-6 pt-2 border-t border-muted">
-              <div className="flex justify-center">
-                <Button
-                  variant="ghost"
-                  onClick={handleClose}
-                  disabled={isProcessing || isConfirming}
-                  className="text-muted-foreground hover:text-secondary-foreground"
-                >
-                  Cancel
-                </Button>
-              </div>
+          <div className="flex-shrink-0 px-6 pb-6 pt-2 border-t border-muted">
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                onClick={handleClose}
+                disabled={isProcessing || isConfirming}
+                className="text-muted-foreground hover:text-secondary-foreground"
+              >
+                Cancel
+              </Button>
             </div>
-          )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-export default JoinAndVoteModal;
+export default JoinModal;

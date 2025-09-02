@@ -11,6 +11,15 @@ const nextConfig = {
         fs: false,
       };
     }
+
+    // Suppress web-worker warnings from ffjavascript/snarkjs
+    config.ignoreWarnings = [
+      {
+        module: /node_modules\/web-worker\/cjs\/node\.js/,
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ];
+
     return config;
   },
   images: {

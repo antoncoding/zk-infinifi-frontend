@@ -5,8 +5,12 @@ import { useParams } from 'next/navigation';
 import { getPollById } from '@/config/poll';
 import { usePoll } from '@/hooks/usePoll';
 import { useMACIRegistration } from '@/hooks/useMACIRegistration';
+import { usePollUserStats } from '@/hooks/usePollUserStats';
+import { useUserMACIKey } from '@/hooks/useUserMACIKey';
+import { getMaciAddress } from '@/config/poll';
+import { useAccount } from 'wagmi';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge, KeyBadge, JoinAndVoteModal, RegistrationModal } from '@/components/common';
+import { Button, AddressBadge, KeyBadge, JoinModal, VoteModal, RegistrationModal } from '@/components/common';
 import Link from 'next/link';
 import { formatPollStatus } from '@/utils/timeFormat';
 
@@ -44,22 +48,47 @@ function AddressInfoItem({ label, address }: { label: string; address: string })
 export default function PollDetailPage() {
   const params = useParams();
   const pollId = params.id as string;
+  const [isJoinModalOpen, setIsJoinModalOpen] = React.useState(false);
   const [isVoteModalOpen, setIsVoteModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
   
+  const { address } = useAccount();
   const pollConfig = getPollById(pollId);
   const { isFullyRegistered, loading: statusLoading, refresh } = useMACIRegistration();
+  const { getMACIKeys } = useUserMACIKey();
+  
+  const maciAddress = getMaciAddress();
+  const userKeyPair = React.useMemo(() => {
+    return getMACIKeys(maciAddress, address)
+  }, [getMACIKeys, maciAddress, address]);
+  
+  const { hasJoined, refresh: refreshPollStats } = usePollUserStats({
+    poll: pollConfig?.pollContract ?? '0x',
+    pollId: BigInt(pollConfig?.id ?? '0'),
+    keyPair: userKeyPair,
+  });
   
   // Auto-refresh registration status to detect when user becomes fully registered
   React.useEffect(() => {
     if (!isFullyRegistered) {
       const interval = setInterval(() => {
-        refresh();
+        refresh?.();
       }, 3000); // Check every 3 seconds when not fully registered
       
       return () => clearInterval(interval);
     }
   }, [isFullyRegistered, refresh]);
+  
+  // Auto-refresh poll stats to detect when user joins
+  React.useEffect(() => {
+    if (isFullyRegistered && !hasJoined) {
+      const interval = setInterval(() => {
+        void refreshPollStats?.();
+      }, 3000); // Check every 3 seconds when registered but not joined
+      
+      return () => clearInterval(interval);
+    }
+  }, [isFullyRegistered, hasJoined, refreshPollStats]);
   
   const { 
     startDate,
@@ -122,9 +151,13 @@ export default function PollDetailPage() {
               <Button onClick={() => setIsRegisterModalOpen(true)} className="rounded-sm">
                 Register
               </Button>
+            ) : !hasJoined ? (
+              <Button onClick={() => setIsJoinModalOpen(true)} className="rounded-sm">
+                Join Poll
+              </Button>
             ) : (
               <Button onClick={() => setIsVoteModalOpen(true)} className="rounded-sm">
-                Join & Vote
+                Vote
               </Button>
             )}
           </div>
@@ -188,10 +221,23 @@ export default function PollDetailPage() {
       
       {pollConfig && (
         <>
-          <JoinAndVoteModal
+          <JoinModal
+            isOpen={isJoinModalOpen}
+            onClose={() => setIsJoinModalOpen(false)}
+            poll={pollConfig}
+            onJoinSuccess={() => {
+              void refreshPollStats?.();
+              setIsJoinModalOpen(false);
+            }}
+          />
+          
+          <VoteModal
             isOpen={isVoteModalOpen}
             onClose={() => setIsVoteModalOpen(false)}
             poll={pollConfig}
+            onVoteSuccess={() => {
+              setIsVoteModalOpen(false);
+            }}
           />
           
           <RegistrationModal
@@ -199,7 +245,7 @@ export default function PollDetailPage() {
             onClose={() => setIsRegisterModalOpen(false)}
             pollId={pollId}
             onSuccess={() => {
-              refresh();
+              refresh?.();
               setIsRegisterModalOpen(false);
             }}
           />

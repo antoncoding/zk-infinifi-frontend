@@ -15,7 +15,8 @@ type PollUserStatsHookResult = {
   joinPoll: (zkProof: string[], stateRootIndex: number, userPublicKey: PubKey) => Promise<void>;
   isConfirming: boolean;
   isConfirmed: boolean;
-  sharedECDHKey: EcdhSharedKey | undefined
+  sharedECDHKey: EcdhSharedKey | undefined;
+  refresh: (() => Promise<unknown>) | undefined;
 };
 
 type Props = {
@@ -41,7 +42,7 @@ export function usePollUserStats({
   const nullifier = keyPair ? poseidon([BigInt(keyPair.privKey.asCircuitInputs()), BigInt(pollId)]) : null;
 
   // Read start and end dates
-  const { data: hasJoined } = useReadContract({
+  const { data: hasJoined, refetch: refetchHasJoined } = useReadContract({
     abi: pollAbi,
     functionName: 'pollNullifiers',
     args: [nullifier],
@@ -121,5 +122,6 @@ export function usePollUserStats({
     isConfirming,
     isConfirmed,
     sharedECDHKey,
+    refresh: refetchHasJoined,
   };
 }
