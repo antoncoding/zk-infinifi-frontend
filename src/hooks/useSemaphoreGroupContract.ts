@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Address } from 'viem';
-import { useReadContract, useChainId } from 'wagmi';
+import { useReadContract } from 'wagmi';
+import { baseSepolia } from 'viem/chains';
 import { Identity } from '@semaphore-protocol/identity';
 import { semaphoreAbi } from '@/abis/semaphore';
 import { getSemaphoreConfig } from '@/config/semaphore';
@@ -30,7 +31,6 @@ type SemaphoreGroupContractResult = {
  * No more API calls needed - reads directly from blockchain!
  */
 export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGroupContractResult {
-  const currentChain = useChainId();
   const config = getSemaphoreConfig();
 
   // Read group merkle tree root
@@ -47,7 +47,7 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     query: {
       enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
-    chainId: currentChain,
+    chainId: baseSepolia.id,
   });
 
   // Read group size (number of members)
@@ -64,7 +64,7 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     query: {
       enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
-    chainId: currentChain,
+    chainId: baseSepolia.id,
   });
 
   // Read merkle tree depth
@@ -81,7 +81,7 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     query: {
       enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
-    chainId: currentChain,
+    chainId: baseSepolia.id,
   });
 
   // Read group admin
@@ -98,7 +98,7 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     query: {
       enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
-    chainId: currentChain,
+    chainId: baseSepolia.id,
   });
 
   // Check if user is a group member (if they have an identity)
@@ -115,7 +115,7 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     query: {
       enabled: !!userIdentity && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
-    chainId: currentChain,
+    chainId: baseSepolia.id,
   });
 
   // Get user's member index if they are a member
@@ -130,7 +130,7 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     query: {
       enabled: !!userIdentity && !!isGroupMember && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
-    chainId: currentChain,
+    chainId: baseSepolia.id,
   });
 
   // Combine loading states

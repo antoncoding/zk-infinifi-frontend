@@ -15,6 +15,7 @@ type SemaphoreIdentityHookResult = {
   userState: SemaphoreUserState;
   generateIdentity: () => Promise<Identity | null>;
   getStoredIdentity: () => Identity | null;
+  getStoredSignature: () => string | null;
   clearIdentity: () => void;
   loading: boolean;
   error: IdentityGenerationError | null;
@@ -62,6 +63,21 @@ export function useSemaphoreIdentity(): SemaphoreIdentityHookResult {
     }
   }, [address, identityStorage]);
 
+  // Get stored signature for current wallet
+  const getStoredSignature = useCallback((): string | null => {
+    if (!address) return null;
+    
+    try {
+      const normalizedAddress = address.toLowerCase();
+      const storedData = identityStorage[normalizedAddress];
+      
+      return storedData?.signature ?? null;
+    } catch (err) {
+      console.error('Error retrieving stored signature:', err);
+      return null;
+    }
+  }, [address, identityStorage]);
+
   // Generate new identity from wallet signature
   const generateIdentity = useCallback(async (): Promise<Identity | null> => {
     if (!address) {
@@ -97,11 +113,12 @@ export function useSemaphoreIdentity(): SemaphoreIdentityHookResult {
       // Generate deterministic identity from signature
       const identity = new Identity(signature);
       
-      // Store identity data
+      // Store identity data with signature
       const normalizedAddress = address.toLowerCase();
       const identityData: SemaphoreIdentityStorage = {
         privateKey: identity.privateKey.toString(),
         commitment: identity.commitment.toString(),
+        signature: signature, // Store the signature for reuse
       };
 
       setIdentityStorage(prev => ({
@@ -191,6 +208,7 @@ export function useSemaphoreIdentity(): SemaphoreIdentityHookResult {
     userState,
     generateIdentity,
     getStoredIdentity,
+    getStoredSignature,
     clearIdentity,
     loading,
     error,

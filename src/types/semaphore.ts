@@ -4,6 +4,7 @@ import { Group } from '@semaphore-protocol/group';
 export type SemaphoreIdentityStorage = {
   privateKey: string;
   commitment: string;
+  signature: string; // Store the signature used to generate the identity
 };
 
 export type SemaphoreGroupMember = {
