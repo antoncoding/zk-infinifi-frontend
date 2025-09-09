@@ -12,7 +12,8 @@
       "Bash(rm:*)",
       "Bash(pnpm run lint:*)",
       "Bash(grep:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:docs.semaphore.pse.dev)"
     ],
     "deny": []
   }

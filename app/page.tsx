@@ -1,11 +1,11 @@
 import { generateMetadata } from '@/utils/generateMetadata';
-import HomePage from './home/HomePage';
+import VotingDashboard from './voting/VotingDashboard';
 
 export const metadata = generateMetadata({
-  title: 'Web3 Next.js Template',
-  description: 'A modern web3 template built with Next.js, TypeScript, and Tailwind CSS',
+  title: 'ZK Core Voting',
+  description: 'Anonymous voting powered by Semaphore zero-knowledge proofs',
 });
 
 export default function Page() {
-  return <HomePage />;
+  return <VotingDashboard />;
 }
