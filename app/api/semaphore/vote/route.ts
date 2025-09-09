@@ -94,7 +94,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitVot
       vote,
       groupId,
       nullifier: nullifier?.slice(0, 10) + '...',
-      proofKeys: Object.keys(proof || {})
+      proofKeys: Object.keys(proof || {}),
+      proof: proof ? {
+        merkleTreeDepth: proof.merkleTreeDepth,
+        merkleTreeRoot: proof.merkleTreeRoot?.slice(0, 10) + '...',
+        nullifier: proof.nullifier?.slice(0, 10) + '...',
+        message: proof.message,
+        pointsLength: proof.points?.length
+      } : null
     });
     
     // Validate required fields

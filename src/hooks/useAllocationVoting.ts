@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { Address } from 'viem';
-import { Identity } from '@semaphore-protocol/identity';
 import { useVotingContractData } from './useVotingContractData';
 import { useGroupMemberCounts } from './useGroupMemberCounts';
-import { useUserGroupMembership } from './useUserGroupMembership';
 
 type AllocationVotingResult = {
   // Contract data
@@ -12,35 +10,26 @@ type AllocationVotingResult = {
   dolphinGroupId: bigint | undefined;
   whaleGroupId: bigint | undefined;
   
-  // Group membership info (for each tier)
+  // Group member counts
   shrimpMembers: bigint | undefined;
   dolphinMembers: bigint | undefined;
   whaleMembers: bigint | undefined;
   
-  // User membership status
-  userGroupMembership: {
-    isShrimp: boolean;
-    isDolphin: boolean;
-    isWhale: boolean;
-  };
-  
-  // Loading states
+  // States
   isLoading: boolean;
   error: Error | null;
   
-  // Refetch functions
-  refetchContractData: () => void;
-  refetchMembershipData: () => void;
+  // Actions
+  refetchAll: () => void;
 };
 
 /**
- * Hook to read Allocation Voting contract data
- * Reads group IDs, member counts, and user membership across all tiers
+ * Simplified hook to get voting contract data and member counts
+ * Use useUserVotingGroup for user membership and group logic
  */
 export function useAllocationVoting(
   votingContractAddress: Address,
-  semaphoreContractAddress: Address,
-  userIdentity?: Identity
+  semaphoreContractAddress: Address
 ): AllocationVotingResult {
   // Get voting contract data (owner, group IDs)
   const {
@@ -50,7 +39,7 @@ export function useAllocationVoting(
     whaleGroupId,
     isLoading: contractLoading,
     error: contractError,
-    refetchAll: refetchContractData
+    refetchAll: refetchContract
   } = useVotingContractData(votingContractAddress);
 
   // Get member counts for all groups
@@ -67,57 +56,32 @@ export function useAllocationVoting(
     whaleGroupId,
   });
 
-  // Get user membership status across all groups
-  const {
-    userGroupMembership,
-    isLoading: membershipLoading,
-    error: membershipError,
-    refetchAll: refetchMembershipData
-  } = useUserGroupMembership(semaphoreContractAddress, {
-    shrimpGroupId,
-    dolphinGroupId,
-    whaleGroupId,
-  }, userIdentity);
-
-  // Combine all loading states
+  // Combined states
   const isLoading = useMemo(() => {
-    return contractLoading || memberCountsLoading || membershipLoading;
-  }, [contractLoading, memberCountsLoading, membershipLoading]);
+    return contractLoading || memberCountsLoading;
+  }, [contractLoading, memberCountsLoading]);
 
-  // Combine all errors
   const error = useMemo(() => {
-    return contractError ?? memberCountsError ?? membershipError ?? null;
-  }, [contractError, memberCountsError, membershipError]);
+    return contractError ?? memberCountsError ?? null;
+  }, [contractError, memberCountsError]);
 
-  // Combined refetch for contract data and member counts
-  const refetchContractDataCombined = useMemo(() => {
+  const refetchAll = useMemo(() => {
     return () => {
-      refetchContractData();
+      refetchContract();
       refetchMemberCounts();
     };
-  }, [refetchContractData, refetchMemberCounts]);
+  }, [refetchContract, refetchMemberCounts]);
 
   return {
-    // Contract data
     owner,
     shrimpGroupId,
     dolphinGroupId,
     whaleGroupId,
-    
-    // Group membership info
     shrimpMembers,
     dolphinMembers,
     whaleMembers,
-    
-    // User membership status
-    userGroupMembership,
-    
-    // Loading states
     isLoading,
     error,
-    
-    // Refetch functions
-    refetchContractData: refetchContractDataCombined,
-    refetchMembershipData,
+    refetchAll,
   };
 }

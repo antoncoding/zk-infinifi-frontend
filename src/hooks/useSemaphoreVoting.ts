@@ -38,6 +38,10 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
 
   // Fetch voting results and check if user has voted
   const fetchVoteResults = useCallback(async (): Promise<VoteResultsResponse> => {
+    // Skip results fetching for now since endpoint doesn't exist
+    console.warn('Results API disabled - returning empty results');
+    return { results: {}, totalVotes: 0, nullifiers: [] };
+    
     try {
       const response = await fetch(`${API_ENDPOINTS.getVoteResults}?groupId=${config.groupId}`);
       

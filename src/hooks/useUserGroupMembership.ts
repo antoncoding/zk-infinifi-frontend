@@ -41,9 +41,9 @@ export function useUserGroupMembership(
     address: semaphoreContractAddress,
     abi: semaphoreAbi,
     functionName: 'hasMember',
-    args: shrimpGroupId && userCommitment ? [shrimpGroupId, userCommitment] : undefined,
+    args: (shrimpGroupId !== undefined && userCommitment !== undefined) ? [shrimpGroupId, userCommitment] : undefined,
     query: {
-      enabled: !!shrimpGroupId && !!userCommitment && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: shrimpGroupId !== undefined && userCommitment !== undefined && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -58,9 +58,9 @@ export function useUserGroupMembership(
     address: semaphoreContractAddress,
     abi: semaphoreAbi,
     functionName: 'hasMember',
-    args: dolphinGroupId && userCommitment ? [dolphinGroupId, userCommitment] : undefined,
+    args: (dolphinGroupId !== undefined && userCommitment !== undefined) ? [dolphinGroupId, userCommitment] : undefined,
     query: {
-      enabled: !!dolphinGroupId && !!userCommitment && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: dolphinGroupId !== undefined && userCommitment !== undefined && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -75,12 +75,38 @@ export function useUserGroupMembership(
     address: semaphoreContractAddress,
     abi: semaphoreAbi,
     functionName: 'hasMember',
-    args: whaleGroupId && userCommitment ? [whaleGroupId, userCommitment] : undefined,
+    args: (whaleGroupId !== undefined && userCommitment !== undefined) ? [whaleGroupId, userCommitment] : undefined,
     query: {
-      enabled: !!whaleGroupId && !!userCommitment && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: whaleGroupId !== undefined && userCommitment !== undefined && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
+
+  // Log specific errors for debugging
+  if (shrimpMembershipError) {
+    console.error('❌ useUserGroupMembership - shrimp membership error:', {
+      error: shrimpMembershipError.message,
+      shrimpGroupId: shrimpGroupId?.toString(),
+      userCommitment: userCommitment?.toString(),
+      enabled: shrimpGroupId !== undefined && userCommitment !== undefined
+    });
+  }
+  if (dolphinMembershipError) {
+    console.error('❌ useUserGroupMembership - dolphin membership error:', {
+      error: dolphinMembershipError.message,
+      dolphinGroupId: dolphinGroupId?.toString(),
+      userCommitment: userCommitment?.toString(),
+      enabled: dolphinGroupId !== undefined && userCommitment !== undefined
+    });
+  }
+  if (whaleMembershipError) {
+    console.error('❌ useUserGroupMembership - whale membership error:', {
+      error: whaleMembershipError.message,
+      whaleGroupId: whaleGroupId?.toString(),
+      userCommitment: userCommitment?.toString(),
+      enabled: whaleGroupId !== undefined && userCommitment !== undefined
+    });
+  }
 
   // Combine loading states
   const isLoading = useMemo(() => {
@@ -92,14 +118,14 @@ export function useUserGroupMembership(
     return shrimpMembershipError ?? dolphinMembershipError ?? whaleMembershipError ?? null;
   }, [shrimpMembershipError, dolphinMembershipError, whaleMembershipError]);
 
-  // Refetch all membership data
+  // Refetch all membership data (only refetch if group IDs and user commitment are available)
   const refetchAll = useMemo(() => {
     return () => {
-      void refetchShrimpMembership();
-      void refetchDolphinMembership();
-      void refetchWhaleMembership();
+      if (shrimpGroupId !== undefined && userCommitment !== undefined) void refetchShrimpMembership();
+      if (dolphinGroupId !== undefined && userCommitment !== undefined) void refetchDolphinMembership();
+      if (whaleGroupId !== undefined && userCommitment !== undefined) void refetchWhaleMembership();
     };
-  }, [refetchShrimpMembership, refetchDolphinMembership, refetchWhaleMembership]);
+  }, [refetchShrimpMembership, refetchDolphinMembership, refetchWhaleMembership, shrimpGroupId, dolphinGroupId, whaleGroupId, userCommitment]);
 
   return {
     userGroupMembership: {

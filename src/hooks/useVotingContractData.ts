@@ -37,6 +37,14 @@ export function useVotingContractData(
     chainId: baseSepolia.id,
   });
 
+  // Log errors for debugging
+  if (ownerError) {
+    console.error('❌ useVotingContractData - owner error:', {
+      error: ownerError.message,
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
+    });
+  }
+
   // Read shrimp group ID
   const { 
     data: shrimpGroupId,
@@ -84,6 +92,26 @@ export function useVotingContractData(
     },
     chainId: baseSepolia.id,
   });
+
+  // Log errors for debugging group IDs
+  if (shrimpIdError) {
+    console.error('❌ useVotingContractData - shrimp group ID error:', {
+      error: shrimpIdError.message,
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
+    });
+  }
+  if (dolphinIdError) {
+    console.error('❌ useVotingContractData - dolphin group ID error:', {
+      error: dolphinIdError.message,
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
+    });
+  }
+  if (whaleIdError) {
+    console.error('❌ useVotingContractData - whale group ID error:', {
+      error: whaleIdError.message,
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
+    });
+  }
 
   // Combine loading states
   const isLoading = useMemo(() => {

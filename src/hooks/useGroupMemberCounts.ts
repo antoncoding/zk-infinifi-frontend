@@ -36,9 +36,9 @@ export function useGroupMemberCounts(
     address: semaphoreContractAddress,
     abi: semaphoreAbi,
     functionName: 'getMerkleTreeSize',
-    args: shrimpGroupId ? [shrimpGroupId] : undefined,
+    args: shrimpGroupId !== undefined ? [shrimpGroupId] : undefined,
     query: {
-      enabled: !!shrimpGroupId && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: shrimpGroupId !== undefined && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -53,9 +53,9 @@ export function useGroupMemberCounts(
     address: semaphoreContractAddress,
     abi: semaphoreAbi,
     functionName: 'getMerkleTreeSize',
-    args: dolphinGroupId ? [dolphinGroupId] : undefined,
+    args: dolphinGroupId !== undefined ? [dolphinGroupId] : undefined,
     query: {
-      enabled: !!dolphinGroupId && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: dolphinGroupId !== undefined && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -70,9 +70,9 @@ export function useGroupMemberCounts(
     address: semaphoreContractAddress,
     abi: semaphoreAbi,
     functionName: 'getMerkleTreeSize',
-    args: whaleGroupId ? [whaleGroupId] : undefined,
+    args: whaleGroupId !== undefined ? [whaleGroupId] : undefined,
     query: {
-      enabled: !!whaleGroupId && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: whaleGroupId !== undefined && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -82,19 +82,48 @@ export function useGroupMemberCounts(
     return isLoadingShrimpMembers || isLoadingDolphinMembers || isLoadingWhaleMembers;
   }, [isLoadingShrimpMembers, isLoadingDolphinMembers, isLoadingWhaleMembers]);
 
+  // Log specific errors for debugging
+  if (shrimpMembersError) {
+    console.error('❌ useGroupMemberCounts - shrimp members error:', {
+      error: shrimpMembersError.message,
+      shrimpGroupId: shrimpGroupId?.toString(),
+      enabled: shrimpGroupId !== undefined
+    });
+  }
+  if (dolphinMembersError) {
+    console.error('❌ useGroupMemberCounts - dolphin members error:', {
+      error: dolphinMembersError.message,
+      dolphinGroupId: dolphinGroupId?.toString(),
+      enabled: dolphinGroupId !== undefined
+    });
+  }
+  if (whaleMembersError) {
+    console.error('❌ useGroupMemberCounts - whale members error:', {
+      error: whaleMembersError.message,
+      whaleGroupId: whaleGroupId?.toString(),
+      enabled: whaleGroupId !== undefined
+    });
+  }
+
   // Combine errors
   const error = useMemo(() => {
     return shrimpMembersError ?? dolphinMembersError ?? whaleMembersError ?? null;
   }, [shrimpMembersError, dolphinMembersError, whaleMembersError]);
 
-  // Refetch all data
+  // Refetch all data (only refetch if group IDs are available)
   const refetchAll = useMemo(() => {
     return () => {
-      void refetchShrimpMembers();
-      void refetchDolphinMembers();
-      void refetchWhaleMembers();
+      console.log('🔄 Refetching group member counts:', {
+        shrimpGroupId: shrimpGroupId?.toString(),
+        dolphinGroupId: dolphinGroupId?.toString(),
+        whaleGroupId: whaleGroupId?.toString()
+      });
+      
+      if (shrimpGroupId !== undefined) void refetchShrimpMembers();
+      if (dolphinGroupId !== undefined) void refetchDolphinMembers();
+      if (whaleGroupId !== undefined) void refetchWhaleMembers();
     };
-  }, [refetchShrimpMembers, refetchDolphinMembers, refetchWhaleMembers]);
+  }, [refetchShrimpMembers, refetchDolphinMembers, refetchWhaleMembers, shrimpGroupId, dolphinGroupId, whaleGroupId]);
 
   return {
     shrimpMembers: shrimpMembers as bigint | undefined,

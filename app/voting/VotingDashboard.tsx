@@ -9,6 +9,7 @@ import { useSemaphoreIdentity } from '@/hooks/useSemaphoreIdentity';
 import { useAllocationVoting } from '@/hooks/useAllocationVoting';
 import { useSemaphoreVoting } from '@/hooks/useSemaphoreVoting';
 import { useSemaphoreJoinGroup } from '@/hooks/useSemaphoreJoinGroup';
+import { useUserVotingGroup } from '@/hooks/useUserVotingGroup';
 import Header from '@/components/layout/header/Header';
 import { Button, AddressBadge } from '@/components/common';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -82,12 +83,19 @@ export default function VotingDashboard() {
     shrimpMembers,
     dolphinMembers,
     whaleMembers,
-    userGroupMembership,
     isLoading: allocationLoading,
     error: allocationError,
-    refetchContractData,
-    refetchMembershipData
-  } = useAllocationVoting(VOTING_CONTRACT_ADDRESS, SEMAPHORE_CONTRACT_ADDRESS, userState.identity);
+    refetchAll: refetchAllocationData
+  } = useAllocationVoting(VOTING_CONTRACT_ADDRESS, SEMAPHORE_CONTRACT_ADDRESS);
+
+  // User's voting group and membership
+  const {
+    activeGroup,
+    memberships,
+    isLoading: groupLoading,
+    error: groupError,
+    refetchAll: refetchGroupData
+  } = useUserVotingGroup(VOTING_CONTRACT_ADDRESS, userState.identity);
   
   const { 
     hasVoted, 
@@ -99,9 +107,9 @@ export default function VotingDashboard() {
 
   // Join group functionality
   const { joinGroup, isJoining, error: joinError } = useSemaphoreJoinGroup(() => {
-    // Refresh membership data after successful join
-    refetchMembershipData();
-    refetchContractData();
+    // Refresh data after successful join
+    refetchGroupData();
+    refetchAllocationData();
   });
 
   // Determine user status for UI
@@ -109,9 +117,8 @@ export default function VotingDashboard() {
     if (!isConnected) return 'not-connected';
     if (!userState.hasIdentity) return 'no-identity';
     
-    // Check if user is a member of any group
-    const isMemberOfAnyGroup = userGroupMembership.isShrimp || userGroupMembership.isDolphin || userGroupMembership.isWhale;
-    if (!isMemberOfAnyGroup) return 'not-member';
+    // Check if user has an active voting group
+    if (!activeGroup.type) return 'not-member';
     
     if (hasVoted) return 'voted';
     return 'can-vote';
@@ -146,8 +153,8 @@ export default function VotingDashboard() {
   // Handle vote success
   const handleVoteSuccess = () => {
     console.log('Vote cast successfully!');
-    refetchContractData();
-    refetchMembershipData();
+    refetchAllocationData();
+    refetchGroupData();
     void refreshResults();
   };
 
@@ -158,8 +165,8 @@ export default function VotingDashboard() {
         voteOption,
         identityCommitment: identity.commitment.toString(),
         groupSize: group.size,
-        userGroup: userGroup?.type,
-        groupId: userGroup?.groupId?.toString()
+        activeGroupType: activeGroup.type,
+        activeGroupId: activeGroup.groupId?.toString()
       });
       
       // Use the real submitVote function which generates proofs and calls backend
@@ -179,24 +186,17 @@ export default function VotingDashboard() {
   };
 
 
-  // Determine which group the user belongs to using on-chain data
-  const getUserGroup = () => {
-    if (userGroupMembership.isShrimp) return { groupId: shrimpGroupId, type: 'shrimp' };
-    if (userGroupMembership.isDolphin) return { groupId: dolphinGroupId, type: 'dolphin' };
-    if (userGroupMembership.isWhale) return { groupId: whaleGroupId, type: 'whale' };
-    return null;
-  };
+  // Debug logging for group data
+  console.log('🔍 Group debug info:', {
+    activeGroupType: activeGroup.type,
+    activeGroupId: activeGroup.groupId?.toString(),
+    votingGroup: activeGroup.group ? `Group with ${activeGroup.group.size} members` : 'null',
+    memberships: memberships,
+    hasUserIdentity: !!userState.identity,
+    userCommitment: userState.identity?.commitment.toString().slice(0, 10) + '...'
+  });
 
-  const userGroup = getUserGroup();
-  
-  // Create a Semaphore group for voting using on-chain data
-  // For now, create a minimal group with just the user's identity
-  // TODO: Enhance this to fetch all member commitments for the user's specific group from Semaphore contract
-  const votingGroup = userState.identity && userGroup 
-    ? new Group([userState.identity.commitment]) 
-    : new Group([]);
-
-  const isLoading = identityLoading || allocationLoading || votingLoading;
+  const isLoading = identityLoading || allocationLoading || votingLoading || groupLoading;
 
   return (
     <div className="bg-main flex min-h-screen flex-col">
@@ -297,14 +297,14 @@ export default function VotingDashboard() {
         </div>
 
         {/* Error Messages */}
-        {(identityError ?? allocationError ?? joinError) && (
+        {(identityError ?? allocationError ?? groupError ?? joinError) && (
           <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
             <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-red-700">Error</p>
                 <p className="text-sm text-red-600">
-                  {identityError?.message ?? allocationError?.message ?? joinError}
+                  {identityError?.message ?? allocationError?.message ?? groupError?.message ?? joinError}
                 </p>
               </div>
             </div>
@@ -336,29 +336,47 @@ export default function VotingDashboard() {
             )}
           </InfoBox>
 
+          {/* Active Voting Group */}
+          {activeGroup.type && (
+            <InfoBox title="Active Voting Group" className="border-green-200 bg-green-50">
+              <div className="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">
+                    {activeGroup.type === 'whale' ? '🐋' : activeGroup.type === 'dolphin' ? '🐬' : '🦐'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-800 capitalize">{activeGroup.type} Group</p>
+                    <p className="text-sm text-green-600">You will vote with this group</p>
+                  </div>
+                </div>
+                <Badge className="bg-green-100 text-green-700">Active</Badge>
+              </div>
+            </InfoBox>
+          )}
+
           {/* Group Memberships */}
-          <InfoBox title="Group Tiers">
+          <InfoBox title="All Group Tiers">
             <div className="space-y-2">
-              <div className={`flex items-center justify-between p-2 rounded ${userGroupMembership.isShrimp ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+              <div className={`flex items-center justify-between p-2 rounded ${memberships.isShrimp ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                 <span className="text-sm font-medium flex items-center gap-2">
                   🦐 Shrimp Group
-                  {userGroupMembership.isShrimp && <Badge className="bg-green-100 text-green-700 text-xs">Member</Badge>}
+                  {memberships.isShrimp && <Badge className="bg-green-100 text-green-700 text-xs">Member</Badge>}
                 </span>
                 <span className="text-sm">{shrimpMembers?.toString() ?? '0'} members</span>
               </div>
               
-              <div className={`flex items-center justify-between p-2 rounded ${userGroupMembership.isDolphin ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
+              <div className={`flex items-center justify-between p-2 rounded ${memberships.isDolphin ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
                 <span className="text-sm font-medium flex items-center gap-2">
                   🐬 Dolphin Group
-                  {userGroupMembership.isDolphin && <Badge className="bg-blue-100 text-blue-700 text-xs">Member</Badge>}
+                  {memberships.isDolphin && <Badge className="bg-blue-100 text-blue-700 text-xs">Member</Badge>}
                 </span>
                 <span className="text-sm">{dolphinMembers?.toString() ?? '0'} members</span>
               </div>
               
-              <div className={`flex items-center justify-between p-2 rounded ${userGroupMembership.isWhale ? 'bg-purple-50 border border-purple-200' : 'bg-gray-50'}`}>
+              <div className={`flex items-center justify-between p-2 rounded ${memberships.isWhale ? 'bg-purple-50 border border-purple-200' : 'bg-gray-50'}`}>
                 <span className="text-sm font-medium flex items-center gap-2">
                   🐋 Whale Group
-                  {userGroupMembership.isWhale && <Badge className="bg-purple-100 text-purple-700 text-xs">Member</Badge>}
+                  {memberships.isWhale && <Badge className="bg-purple-100 text-purple-700 text-xs">Member</Badge>}
                 </span>
                 <span className="text-sm">{whaleMembers?.toString() ?? '0'} members</span>
               </div>
@@ -422,7 +440,7 @@ export default function VotingDashboard() {
         onClose={() => setShowVoteModal(false)}
         onVoteSuccess={handleVoteSuccess}
         userIdentity={userState.identity}
-        group={votingGroup}
+        group={activeGroup.group}
         onSubmitVote={handleVote}
       />
     </div>
