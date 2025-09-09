@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { Address } from 'viem';
-import { useReadContract } from 'wagmi';
 import { Identity } from '@semaphore-protocol/identity';
-import { abi as votingAbi } from '@/abis/voting';
-import { semaphoreAbi } from '@/abis/semaphore';
-import { baseSepolia } from 'viem/chains';
+import { useVotingContractData } from './useVotingContractData';
+import { useGroupMemberCounts } from './useGroupMemberCounts';
+import { useUserGroupMembership } from './useUserGroupMembership';
 
 type AllocationVotingResult = {
   // Contract data
@@ -43,239 +42,82 @@ export function useAllocationVoting(
   semaphoreContractAddress: Address,
   userIdentity?: Identity
 ): AllocationVotingResult {
-  const currentChain = baseSepolia.id;
+  // Get voting contract data (owner, group IDs)
+  const {
+    owner,
+    shrimpGroupId,
+    dolphinGroupId,
+    whaleGroupId,
+    isLoading: contractLoading,
+    error: contractError,
+    refetchAll: refetchContractData
+  } = useVotingContractData(votingContractAddress);
 
-  // Read contract owner
-  const { 
-    data: owner, 
-    isLoading: isLoadingOwner,
-    error: ownerError,
-    refetch: refetchOwner
-  } = useReadContract({
-    address: votingContractAddress,
-    abi: votingAbi,
-    functionName: 'owner',
-    query: {
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
+  // Get member counts for all groups
+  const {
+    shrimpMembers,
+    dolphinMembers,
+    whaleMembers,
+    isLoading: memberCountsLoading,
+    error: memberCountsError,
+    refetchAll: refetchMemberCounts
+  } = useGroupMemberCounts(semaphoreContractAddress, {
+    shrimpGroupId,
+    dolphinGroupId,
+    whaleGroupId,
   });
 
-  // Read group IDs
-  const { 
-    data: shrimpGroupId,
-    isLoading: isLoadingShrimpId,
-    error: shrimpIdError,
-    refetch: refetchShrimpId
-  } = useReadContract({
-    address: votingContractAddress,
-    abi: votingAbi,
-    functionName: 'shrimpGroupId',
-    query: {
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
+  // Get user membership status across all groups
+  const {
+    userGroupMembership,
+    isLoading: membershipLoading,
+    error: membershipError,
+    refetchAll: refetchMembershipData
+  } = useUserGroupMembership(semaphoreContractAddress, {
+    shrimpGroupId,
+    dolphinGroupId,
+    whaleGroupId,
+  }, userIdentity);
 
-  const { 
-    data: dolphinGroupId,
-    isLoading: isLoadingDolphinId,
-    error: dolphinIdError,
-    refetch: refetchDolphinId
-  } = useReadContract({
-    address: votingContractAddress,
-    abi: votingAbi,
-    functionName: 'dolphinGroupId',
-    query: {
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  const { 
-    data: whaleGroupId,
-    isLoading: isLoadingWhaleId,
-    error: whaleIdError,
-    refetch: refetchWhaleId
-  } = useReadContract({
-    address: votingContractAddress,
-    abi: votingAbi,
-    functionName: 'whaleGroupId',
-    query: {
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  // Read member counts for each group from Semaphore contract
-  const { 
-    data: shrimpMembers,
-    isLoading: isLoadingShrimpMembers,
-    error: shrimpMembersError,
-    refetch: refetchShrimpMembers
-  } = useReadContract({
-    address: semaphoreContractAddress,
-    abi: semaphoreAbi,
-    functionName: 'getMerkleTreeSize',
-    args: shrimpGroupId ? [shrimpGroupId] : undefined,
-    query: {
-      enabled: !!shrimpGroupId && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  const { 
-    data: dolphinMembers,
-    isLoading: isLoadingDolphinMembers,
-    error: dolphinMembersError,
-    refetch: refetchDolphinMembers
-  } = useReadContract({
-    address: semaphoreContractAddress,
-    abi: semaphoreAbi,
-    functionName: 'getMerkleTreeSize',
-    args: dolphinGroupId ? [dolphinGroupId] : undefined,
-    query: {
-      enabled: !!dolphinGroupId && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  const { 
-    data: whaleMembers,
-    isLoading: isLoadingWhaleMembers,
-    error: whaleMembersError,
-    refetch: refetchWhaleMembers
-  } = useReadContract({
-    address: semaphoreContractAddress,
-    abi: semaphoreAbi,
-    functionName: 'getMerkleTreeSize',
-    args: whaleGroupId ? [whaleGroupId] : undefined,
-    query: {
-      enabled: !!whaleGroupId && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  // Check user membership in each group
-  const userCommitment = userIdentity ? BigInt(userIdentity.commitment.toString()) : undefined;
-
-  const { 
-    data: isShrimp,
-    isLoading: isLoadingShrimMembership,
-    error: shrimpMembershipError,
-    refetch: refetchShrimpMembership
-  } = useReadContract({
-    address: semaphoreContractAddress,
-    abi: semaphoreAbi,
-    functionName: 'hasMember',
-    args: shrimpGroupId && userCommitment ? [shrimpGroupId, userCommitment] : undefined,
-    query: {
-      enabled: !!shrimpGroupId && !!userCommitment && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  const { 
-    data: isDolphin,
-    isLoading: isLoadingDolphinMembership,
-    error: dolphinMembershipError,
-    refetch: refetchDolphinMembership
-  } = useReadContract({
-    address: semaphoreContractAddress,
-    abi: semaphoreAbi,
-    functionName: 'hasMember',
-    args: dolphinGroupId && userCommitment ? [dolphinGroupId, userCommitment] : undefined,
-    query: {
-      enabled: !!dolphinGroupId && !!userCommitment && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  const { 
-    data: isWhale,
-    isLoading: isLoadingWhaleMembership,
-    error: whaleMembershipError,
-    refetch: refetchWhaleMembership
-  } = useReadContract({
-    address: semaphoreContractAddress,
-    abi: semaphoreAbi,
-    functionName: 'hasMember',
-    args: whaleGroupId && userCommitment ? [whaleGroupId, userCommitment] : undefined,
-    query: {
-      enabled: !!whaleGroupId && !!userCommitment && semaphoreContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: currentChain,
-  });
-
-  // Combine loading states
+  // Combine all loading states
   const isLoading = useMemo(() => {
-    return isLoadingOwner || isLoadingShrimpId || isLoadingDolphinId || isLoadingWhaleId ||
-           isLoadingShrimpMembers || isLoadingDolphinMembers || isLoadingWhaleMembers ||
-           isLoadingShrimMembership || isLoadingDolphinMembership || isLoadingWhaleMembership;
-  }, [
-    isLoadingOwner, isLoadingShrimpId, isLoadingDolphinId, isLoadingWhaleId,
-    isLoadingShrimpMembers, isLoadingDolphinMembers, isLoadingWhaleMembers,
-    isLoadingShrimMembership, isLoadingDolphinMembership, isLoadingWhaleMembership
-  ]);
+    return contractLoading || memberCountsLoading || membershipLoading;
+  }, [contractLoading, memberCountsLoading, membershipLoading]);
 
-  // Combine errors
+  // Combine all errors
   const error = useMemo(() => {
-    return ownerError ?? shrimpIdError ?? dolphinIdError ?? whaleIdError ??
-           shrimpMembersError ?? dolphinMembersError ?? whaleMembersError ??
-           shrimpMembershipError ?? dolphinMembershipError ?? whaleMembershipError ?? null;
-  }, [
-    ownerError, shrimpIdError, dolphinIdError, whaleIdError,
-    shrimpMembersError, dolphinMembersError, whaleMembersError,
-    shrimpMembershipError, dolphinMembershipError, whaleMembershipError
-  ]);
+    return contractError ?? memberCountsError ?? membershipError ?? null;
+  }, [contractError, memberCountsError, membershipError]);
 
-  // Refetch contract data
-  const refetchContractData = useMemo(() => {
+  // Combined refetch for contract data and member counts
+  const refetchContractDataCombined = useMemo(() => {
     return () => {
-      void refetchOwner();
-      void refetchShrimpId();
-      void refetchDolphinId();
-      void refetchWhaleId();
-      void refetchShrimpMembers();
-      void refetchDolphinMembers();
-      void refetchWhaleMembers();
+      refetchContractData();
+      refetchMemberCounts();
     };
-  }, [refetchOwner, refetchShrimpId, refetchDolphinId, refetchWhaleId, refetchShrimpMembers, refetchDolphinMembers, refetchWhaleMembers]);
-
-  // Refetch membership data
-  const refetchMembershipData = useMemo(() => {
-    return () => {
-      void refetchShrimpMembership();
-      void refetchDolphinMembership();
-      void refetchWhaleMembership();
-    };
-  }, [refetchShrimpMembership, refetchDolphinMembership, refetchWhaleMembership]);
+  }, [refetchContractData, refetchMemberCounts]);
 
   return {
     // Contract data
-    owner: owner as Address | undefined,
-    shrimpGroupId: shrimpGroupId as bigint | undefined,
-    dolphinGroupId: dolphinGroupId as bigint | undefined,
-    whaleGroupId: whaleGroupId as bigint | undefined,
+    owner,
+    shrimpGroupId,
+    dolphinGroupId,
+    whaleGroupId,
     
     // Group membership info
-    shrimpMembers: shrimpMembers as bigint | undefined,
-    dolphinMembers: dolphinMembers as bigint | undefined,
-    whaleMembers: whaleMembers as bigint | undefined,
+    shrimpMembers,
+    dolphinMembers,
+    whaleMembers,
     
     // User membership status
-    userGroupMembership: {
-      isShrimp: !!isShrimp,
-      isDolphin: !!isDolphin,
-      isWhale: !!isWhale,
-    },
+    userGroupMembership,
     
     // Loading states
     isLoading,
     error,
     
     // Refetch functions
-    refetchContractData,
+    refetchContractData: refetchContractDataCombined,
     refetchMembershipData,
   };
 }

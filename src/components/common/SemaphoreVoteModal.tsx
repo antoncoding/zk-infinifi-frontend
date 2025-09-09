@@ -18,7 +18,7 @@ type SemaphoreVoteModalProps = {
   onClose: () => void;
   onVoteSuccess?: () => void;
   userIdentity?: Identity;
-  group?: Group;
+  group?: Group | null;
   onSubmitVote?: (voteOption: number, identity: Identity, group: Group) => Promise<boolean>;
 };
 
@@ -52,7 +52,16 @@ export function SemaphoreVoteModal({
   };
 
   const handleSubmitVote = async () => {
-    if (selectedVoteOption === null ?? !userIdentity ?? !group ?? !onSubmitVote) return;
+    if (!group) {
+      setError('No Group')
+      return
+    }
+    if (selectedVoteOption === null || !userIdentity || !onSubmitVote) {
+      setError('Missing Vote option, identity or callback')
+      return
+    };
+
+    console.log('selectedVoteOption', selectedVoteOption)
 
     try {
       setError(null);

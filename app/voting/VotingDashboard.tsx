@@ -1,16 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { getCurrentVotingState, SEMAPHORE_CONTRACT_ADDRESS, VOTING_CONTRACT_ADDRESS } from '@/config/semaphore';
+import { Group } from '@semaphore-protocol/group';
+import { Identity } from '@semaphore-protocol/identity';
 import { useSemaphoreIdentity } from '@/hooks/useSemaphoreIdentity';
 import { useAllocationVoting } from '@/hooks/useAllocationVoting';
-import { useSemaphoreVoting } from '@/hooks/useSemaphoreVotingSimplified';
+import { useSemaphoreVoting } from '@/hooks/useSemaphoreVoting';
 import { useSemaphoreJoinGroup } from '@/hooks/useSemaphoreJoinGroup';
 import Header from '@/components/layout/header/Header';
 import { Button, AddressBadge } from '@/components/common';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Badge } from '@/components/common/Badge';
+import { SemaphoreVoteModal } from '@/components/common/SemaphoreVoteModal';
 import { Loader2, Shield, Users, Vote, CheckCircle2, AlertCircle } from 'lucide-react';
 
 function InfoBox({ title, children, className = '' }: { 
@@ -58,6 +61,7 @@ function StatusBadge({ status }: { status: 'not-connected' | 'no-identity' | 'no
 export default function VotingDashboard() {
   const { address, isConnected } = useAccount();
   const votingState = getCurrentVotingState();
+  const [showVoteModal, setShowVoteModal] = useState(false);
   
   // Semaphore hooks
   const { 
@@ -88,8 +92,10 @@ export default function VotingDashboard() {
   const { 
     hasVoted, 
     voteResults, 
-    loading: votingLoading 
-  } = useSemaphoreVoting();
+    loading: votingLoading,
+    submitVote,
+    refreshResults
+  } = useSemaphoreVoting(userState.identity);
 
   // Join group functionality
   const { joinGroup, isJoining, error: joinError } = useSemaphoreJoinGroup(() => {
@@ -136,6 +142,59 @@ export default function VotingDashboard() {
       console.log('Successfully joined the group!');
     }
   };
+
+  // Handle vote success
+  const handleVoteSuccess = () => {
+    console.log('Vote cast successfully!');
+    refetchContractData();
+    refetchMembershipData();
+    void refreshResults();
+  };
+
+  // Handle voting - pass the vote option to backend
+  const handleVote = async (voteOption: number, identity: Identity, group: Group) => {
+    try {
+      console.log('🗳️ Vote handler called with:', {
+        voteOption,
+        identityCommitment: identity.commitment.toString(),
+        groupSize: group.size,
+        userGroup: userGroup?.type,
+        groupId: userGroup?.groupId?.toString()
+      });
+      
+      // Use the real submitVote function which generates proofs and calls backend
+      const success = await submitVote(voteOption, identity, group);
+      
+      console.log('📊 Vote submission result:', success);
+      
+      if (success) {
+        handleVoteSuccess();
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('❌ Vote submission error:', error);
+      return false;
+    }
+  };
+
+
+  // Determine which group the user belongs to using on-chain data
+  const getUserGroup = () => {
+    if (userGroupMembership.isShrimp) return { groupId: shrimpGroupId, type: 'shrimp' };
+    if (userGroupMembership.isDolphin) return { groupId: dolphinGroupId, type: 'dolphin' };
+    if (userGroupMembership.isWhale) return { groupId: whaleGroupId, type: 'whale' };
+    return null;
+  };
+
+  const userGroup = getUserGroup();
+  
+  // Create a Semaphore group for voting using on-chain data
+  // For now, create a minimal group with just the user's identity
+  // TODO: Enhance this to fetch all member commitments for the user's specific group from Semaphore contract
+  const votingGroup = userState.identity && userGroup 
+    ? new Group([userState.identity.commitment]) 
+    : new Group([]);
 
   const isLoading = identityLoading || allocationLoading || votingLoading;
 
@@ -214,10 +273,7 @@ export default function VotingDashboard() {
                 
                 {userStatus === 'can-vote' && (
                   <Button 
-                    onClick={() => {
-                      // TODO: Implement voting modal
-                      console.log('Open vote modal');
-                    }}
+                    onClick={() => setShowVoteModal(true)}
                     className="rounded-sm"
                   >
                     <Vote className="h-4 w-4 mr-2" />
@@ -360,7 +416,15 @@ export default function VotingDashboard() {
         </div>
       </main>
       
-      {/* TODO: Add modals for voting when implemented */}
+      {/* Vote Modal */}
+      <SemaphoreVoteModal
+        isOpen={showVoteModal}
+        onClose={() => setShowVoteModal(false)}
+        onVoteSuccess={handleVoteSuccess}
+        userIdentity={userState.identity}
+        group={votingGroup}
+        onSubmitVote={handleVote}
+      />
     </div>
   );
 }

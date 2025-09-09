@@ -78,7 +78,7 @@ export function SemaphoreJoinModal({
   };
 
   const handleJoinGroup = async () => {
-    if (!userIdentity ?? !signature ?? !onJoinGroup) return;
+    if (!userIdentity || !signature || !onJoinGroup) return;
 
     try {
       setError(null);

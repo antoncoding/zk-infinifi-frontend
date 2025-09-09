@@ -130,6 +130,8 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
       // Use group ID as scope to prevent double voting
       const scope = config.groupId;
 
+      console.log('group', group)
+
       // Generate the proof
       const proof = await generateProof(identity, group, message, scope);
       
