@@ -57,9 +57,6 @@ function StatusBadge({ status }: { status: 'not-connected' | 'no-identity' | 'no
 
 export default function VotingDashboard() {
   const { address, isConnected } = useAccount();
-  // const [showJoinModal, setShowJoinModal] = useState(false);
-  // const [showVoteModal, setShowVoteModal] = useState(false);
-  
   const votingState = getCurrentVotingState();
   
   // Semaphore hooks

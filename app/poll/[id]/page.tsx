@@ -11,7 +11,7 @@ import { getMaciAddress, getInitialVoiceCreditProxyAddress } from '@/config/poll
 import { useVoiceCredit } from '@/hooks/useVoiceCredit';
 import { useAccount } from 'wagmi';
 import Header from '@/components/layout/header/Header';
-import { Button, AddressBadge, KeyBadge, JoinModal, VoteModal, RegistrationModal } from '@/components/common';
+import { Button, AddressBadge, KeyBadge, JoinModal, RegistrationModal } from '@/components/common';
 import Link from 'next/link';
 import { formatPollStatus } from '@/utils/timeFormat';
 
@@ -50,7 +50,6 @@ export default function PollDetailPage() {
   const params = useParams();
   const pollId = params.id as string;
   const [isJoinModalOpen, setIsJoinModalOpen] = React.useState(false);
-  const [isVoteModalOpen, setIsVoteModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
   
   const { address } = useAccount();
@@ -161,11 +160,7 @@ export default function PollDetailPage() {
               <Button onClick={() => setIsJoinModalOpen(true)} className="rounded-sm">
                 Join Poll
               </Button>
-            ) : (
-              <Button onClick={() => setIsVoteModalOpen(true)} className="rounded-sm">
-                Vote
-              </Button>
-            )}
+            ) : <div></div>}
           </div>
         </div>
 
@@ -235,16 +230,6 @@ export default function PollDetailPage() {
             onJoinSuccess={() => {
               void refreshPollStats?.();
               setIsJoinModalOpen(false);
-            }}
-          />
-          
-          <VoteModal
-            isOpen={isVoteModalOpen}
-            onClose={() => setIsVoteModalOpen(false)}
-            poll={pollConfig}
-            voiceCredits={voiceCredits}
-            onVoteSuccess={() => {
-              setIsVoteModalOpen(false);
             }}
           />
           

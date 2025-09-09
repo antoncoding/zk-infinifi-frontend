@@ -59,9 +59,9 @@ function NavbarTitle() {
         href="/"
         passHref
         className="text-center text-lg font-medium text-primary no-underline"
-        aria-label="MACI"
+        aria-label="Infiniphore"
       >
-        MACI
+        Infiniphore
       </Link>
     </div>
   );
