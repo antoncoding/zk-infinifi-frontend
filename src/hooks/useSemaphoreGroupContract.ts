@@ -30,7 +30,7 @@ type SemaphoreGroupContractResult = {
  * Hook to read Semaphore group data directly from the contract using wagmi
  * No more API calls needed - reads directly from blockchain!
  */
-export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGroupContractResult {
+export function useSemaphoreGroupContract(userIdentity?: Identity, groupId?: bigint): SemaphoreGroupContractResult {
   const config = getSemaphoreConfig();
 
   // Read group merkle tree root
@@ -43,9 +43,9 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     address: config.contractAddress,
     abi: semaphoreAbi,
     functionName: 'getMerkleTreeRoot',
-    args: [config.groupId],
+    args: groupId ? [groupId] : undefined,
     query: {
-      enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!groupId && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -60,9 +60,9 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     address: config.contractAddress,
     abi: semaphoreAbi,
     functionName: 'getMerkleTreeSize',
-    args: [config.groupId],
+    args: groupId ? [groupId] : undefined,
     query: {
-      enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!groupId && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -77,9 +77,9 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     address: config.contractAddress,
     abi: semaphoreAbi,
     functionName: 'getMerkleTreeDepth',
-    args: [config.groupId],
+    args: groupId ? [groupId] : undefined,
     query: {
-      enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!groupId && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -94,9 +94,9 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     address: config.contractAddress,
     abi: semaphoreAbi,
     functionName: 'getGroupAdmin',
-    args: [config.groupId],
+    args: groupId ? [groupId] : undefined,
     query: {
-      enabled: config.contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!groupId && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -111,9 +111,9 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     address: config.contractAddress,
     abi: semaphoreAbi,
     functionName: 'hasMember',
-    args: userIdentity ? [config.groupId, BigInt(userIdentity.commitment.toString())] : undefined,
+    args: userIdentity && groupId ? [groupId, BigInt(userIdentity.commitment.toString())] : undefined,
     query: {
-      enabled: !!userIdentity && config.contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!userIdentity && !!groupId && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
@@ -126,9 +126,9 @@ export function useSemaphoreGroupContract(userIdentity?: Identity): SemaphoreGro
     address: config.contractAddress,
     abi: semaphoreAbi,
     functionName: 'indexOf',
-    args: userIdentity ? [config.groupId, BigInt(userIdentity.commitment.toString())] : undefined,
+    args: userIdentity && groupId ? [groupId, BigInt(userIdentity.commitment.toString())] : undefined,
     query: {
-      enabled: !!userIdentity && !!isGroupMember && config.contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!userIdentity && !!isGroupMember && !!groupId && config.contractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });

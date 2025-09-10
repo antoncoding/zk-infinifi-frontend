@@ -50,6 +50,8 @@ export type SubmitVoteResponse = {
   success: boolean;
   transactionHash?: string;
   error?: string;
+  details?: string;
+  originalError?: string;
 };
 
 export type GroupMembersResponse = {

@@ -24,6 +24,8 @@ type SemaphoreGroupHookResult = {
 };
 
 /**
+ * @deprecated This hook uses hardcoded group IDs and is no longer used.
+ * Use useUserVotingGroup + useSemaphoreJoinGroup instead for dynamic group management.
  * Hook to manage Semaphore group operations
  * Handles group membership, joining, and member data fetching
  */

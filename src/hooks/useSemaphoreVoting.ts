@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
 import { generateProof, verifyProof } from '@semaphore-protocol/proof';
-import { getSemaphoreConfig, API_ENDPOINTS } from '@/config/semaphore';
+import { API_ENDPOINTS } from '@/config/semaphore';
 import { 
   SubmitVoteRequest,
   SubmitVoteResponse,
@@ -26,7 +26,7 @@ type SemaphoreVotingHookResult = {
  * Hook to manage Semaphore voting operations
  * Handles vote submission, proof generation, and results fetching
  */
-export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHookResult {
+export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): SemaphoreVotingHookResult {
   const [hasVoted, setHasVoted] = useState(false);
   const [voteResults, setVoteResults] = useState<Record<string, number>>({});
   const [totalVotes, setTotalVotes] = useState(0);
@@ -34,38 +34,19 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<VotingError | null>(null);
 
-  const config = getSemaphoreConfig();
 
   // Fetch voting results and check if user has voted
   const fetchVoteResults = useCallback(async (): Promise<VoteResultsResponse> => {
+    // Skip results fetching if no groupId is provided
+    if (!groupId) {
+      console.warn('No groupId provided - returning empty results');
+      return { results: {}, totalVotes: 0, nullifiers: [] };
+    }
+
     // Skip results fetching for now since endpoint doesn't exist
     console.warn('Results API disabled - returning empty results');
     return { results: {}, totalVotes: 0, nullifiers: [] };
-    
-    try {
-      const response = await fetch(`${API_ENDPOINTS.getVoteResults}?groupId=${config.groupId}`);
-      
-      if (!response.ok) {
-        // Return empty results if API not available yet (development mode)
-        if (response.status === 404) {
-          console.warn('Vote results API not available yet, returning empty results');
-          return { results: {}, totalVotes: 0, nullifiers: [] };
-        }
-        throw new Error(`Failed to fetch vote results: ${response.statusText}`);
-      }
-
-      const data = await response.json() as VoteResultsResponse;
-      return data;
-    } catch (err) {
-      // In development, return empty results if backend not available
-      if (err instanceof TypeError && err.message.includes('fetch')) {
-        console.warn('Backend API not available, using empty results for development');
-        return { results: {}, totalVotes: 0, nullifiers: [] };
-      }
-      console.error('Error fetching vote results:', err);
-      throw err;
-    }
-  }, [config.groupId]);
+  }, [groupId]);
 
   // Check if user has already voted by checking nullifiers
   const checkUserVotingStatus = useCallback((nullifiers: string[], userCommitment?: string): boolean => {
@@ -104,7 +85,7 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
       }
     } catch (err) {
       // Don't set error for development mode when API is not available
-      if (!(err instanceof TypeError && err.message.includes('fetch'))) {
+      if (!(err instanceof TypeError && (err as Error).message?.includes('fetch'))) {
         setError({
           type: 'SUBMISSION_FAILED',
           message: err instanceof Error ? err.message : 'Failed to fetch vote results'
@@ -127,14 +108,24 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
     identity: Identity, 
     group: Group
   ): Promise<SemaphoreProofData | null> => {
+    if (!groupId) {
+      throw new Error('No groupId provided for proof generation');
+    }
+
     try {
       // Create the message (vote option) as a bigint
       const message = BigInt(voteOption);
       
-      // Use group ID as scope to prevent double voting
-      const scope = config.groupId;
+      // Use the actual group ID as scope to prevent double voting within that group
+      const scope = groupId;
 
-      console.log('group', group)
+      console.log('🔍 Proof generation details:', {
+        voteOption,
+        groupId: groupId.toString(),
+        groupSize: group.size,
+        message: message.toString(),
+        scope: scope.toString()
+      });
 
       // Generate the proof
       const proof = await generateProof(identity, group, message, scope);
@@ -144,7 +135,7 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
       console.error('Error generating voting proof:', err);
       throw new Error('Failed to generate voting proof');
     }
-  }, [config.groupId]);
+  }, [groupId]);
 
   // Submit vote with proof
   const submitVote = useCallback(async (
@@ -192,6 +183,12 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
         nullifier: proof.nullifier.toString(),
       };
 
+      if (!groupId) {
+        throw new Error('No groupId provided for vote submission');
+      }
+
+      console.log('📤 Submitting vote with groupId:', groupId.toString());
+
       const response = await fetch(API_ENDPOINTS.submitVote, {
         method: 'POST',
         headers: {
@@ -199,19 +196,30 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
         },
         body: JSON.stringify({
           ...submitRequest,
-          groupId: config.groupId.toString(),
+          groupId: groupId.toString(),
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Vote submission failed: ${errorData}`);
+        let errorData;
+        try {
+          errorData = await response.json() as SubmitVoteResponse;
+        } catch {
+          errorData = { error: await response.text() };
+        }
+        
+        const errorMsg = errorData.error ?? `HTTP ${response.status}: ${response.statusText}`;
+        const details = errorData.details ? ` Details: ${errorData.details}` : '';
+        throw new Error(`${errorMsg}${details}`);
       }
 
       const result = await response.json() as SubmitVoteResponse;
       
       if (!result.success) {
-        throw new Error(result.error ?? 'Failed to submit vote');
+        const errorMsg = result.error ?? 'Failed to submit vote';
+        const details = result.details ? ` Details: ${result.details}` : '';
+        const originalError = result.originalError ? ` (${result.originalError})` : '';
+        throw new Error(`${errorMsg}${details}${originalError}`);
       }
 
       // Mark user as having voted and refresh results
@@ -224,12 +232,23 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
       let errorMessage = 'Failed to submit vote';
 
       if (err instanceof Error) {
-        if (err.message.includes('proof')) {
+        const errorMsg = err.message.toLowerCase();
+        
+        if (errorMsg.includes('proof')) {
           errorType = 'PROOF_GENERATION_FAILED';
           errorMessage = 'Failed to generate voting proof. Please try again.';
-        } else if (err.message.includes('already voted') || err.message.includes('duplicate')) {
+        } else if (errorMsg.includes('already voted') || errorMsg.includes('duplicate') || errorMsg.includes('nullifier')) {
           errorType = 'ALREADY_VOTED';
-          errorMessage = 'You have already voted';
+          errorMessage = 'You have already voted in this group';
+        } else if (errorMsg.includes('smart contract execution failed') || errorMsg.includes('execution reverted')) {
+          errorType = 'SUBMISSION_FAILED';
+          errorMessage = 'Vote was rejected by the smart contract. You may have already voted or the proof is invalid.';
+        } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('gas')) {
+          errorType = 'SUBMISSION_FAILED';
+          errorMessage = 'Transaction failed due to insufficient funds for gas fees. Please contact support.';
+        } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+          errorType = 'SUBMISSION_FAILED';
+          errorMessage = 'Network error occurred. Please check your connection and try again.';
         } else {
           errorMessage = err.message;
         }
@@ -241,7 +260,7 @@ export function useSemaphoreVoting(userIdentity?: Identity): SemaphoreVotingHook
     } finally {
       setIsVoting(false);
     }
-  }, [hasVoted, generateVotingProof, config.groupId]);
+  }, [hasVoted, generateVotingProof, groupId]);
 
   // Initialize vote results on mount only (not when dependencies change)
   useEffect(() => {

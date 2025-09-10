@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { Identity } from '@semaphore-protocol/identity';
-import { getSemaphoreConfig, API_ENDPOINTS } from '@/config/semaphore';
+import { API_ENDPOINTS } from '@/config/semaphore';
 
 type JoinGroupRequest = {
   walletAddress: string;
@@ -17,7 +17,7 @@ type JoinGroupResponse = {
 };
 
 type JoinGroupHookResult = {
-  joinGroup: (identity: Identity, storedSignature?: string) => Promise<boolean>;
+  joinGroup: (identity: Identity, groupId: bigint, storedSignature?: string) => Promise<boolean>;
   isJoining: boolean;
   error: string | null;
 };
@@ -31,9 +31,7 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const config = getSemaphoreConfig();
-
-  const joinGroup = useCallback(async (identity: Identity, storedSignature?: string): Promise<boolean> => {
+  const joinGroup = useCallback(async (identity: Identity, groupId: bigint, storedSignature?: string): Promise<boolean> => {
     if (!address) {
       setError('Wallet not connected');
       return false;
@@ -55,13 +53,13 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
         walletAddress: address,
         signature,
         identityCommitment: identity.commitment.toString(),
-        groupId: config.groupId.toString(),
+        groupId: groupId.toString(),
       };
 
       console.log('Sending join group request to API:', {
         walletAddress: address,
         identityCommitment: identity.commitment.toString().slice(0, 10) + '...',
-        groupId: config.groupId.toString()
+        groupId: groupId.toString()
       });
 
       // Call API
@@ -111,7 +109,7 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
     } finally {
       setIsJoining(false);
     }
-  }, [address, config.groupId, onSuccess]);
+  }, [address, onSuccess]);
 
   return {
     joinGroup,

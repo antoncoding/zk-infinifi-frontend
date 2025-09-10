@@ -102,8 +102,9 @@ export default function VotingDashboard() {
     voteResults, 
     loading: votingLoading,
     submitVote,
-    refreshResults
-  } = useSemaphoreVoting(userState.identity);
+    refreshResults,
+    error: votingError
+  } = useSemaphoreVoting(userState.identity, activeGroup.groupId);
 
   // Join group functionality
   const { joinGroup, isJoining, error: joinError } = useSemaphoreJoinGroup(() => {
@@ -136,7 +137,10 @@ export default function VotingDashboard() {
 
   // Handle join group - now uses the API with stored signature
   const handleJoinGroup = async () => {
-    if (!userState.identity) return;
+    if (!userState.identity || !activeGroup.groupId) {
+      console.error('Missing identity or group ID for joining');
+      return;
+    }
     
     const storedSignature = getStoredSignature();
     if (!storedSignature) {
@@ -144,9 +148,10 @@ export default function VotingDashboard() {
       return;
     }
     
-    const success = await joinGroup(userState.identity, storedSignature);
+    console.log(`🎯 Attempting to join group ${activeGroup.type} with ID: ${activeGroup.groupId.toString()}`);
+    const success = await joinGroup(userState.identity, activeGroup.groupId, storedSignature);
     if (success) {
-      console.log('Successfully joined the group!');
+      console.log(`✅ Successfully joined ${activeGroup.type} group!`);
     }
   };
 
@@ -297,15 +302,22 @@ export default function VotingDashboard() {
         </div>
 
         {/* Error Messages */}
-        {(identityError ?? allocationError ?? groupError ?? joinError) && (
+        {(identityError ?? allocationError ?? groupError ?? joinError ?? votingError) && (
           <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
             <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-red-700">Error</p>
-                <p className="text-sm text-red-600">
-                  {identityError?.message ?? allocationError?.message ?? groupError?.message ?? joinError}
+                <p className="font-medium text-red-700">
+                  {votingError ? 'Voting Error' : 'Error'}
                 </p>
+                <p className="text-sm text-red-600">
+                  {votingError?.message ?? identityError?.message ?? allocationError?.message ?? groupError?.message ?? joinError}
+                </p>
+                {votingError?.type && (
+                  <p className="text-xs text-red-500 mt-1 font-mono">
+                    Error Type: {votingError.type}
+                  </p>
+                )}
               </div>
             </div>
           </div>

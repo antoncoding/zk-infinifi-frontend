@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
-// import { getSemaphoreConfig } from '@/config/semaphore';
+
 import { 
   VotingError
 } from '@/types/semaphore';

@@ -25,8 +25,6 @@ export function useSemaphoreGroup(userIdentity?: Identity): SemaphoreGroupHookRe
   const [error, setError] = useState<GroupJoinError | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  // const config = getSemaphoreConfig(); // Not used in development mode
-
   // Single initialization effect
   useEffect(() => {
     if (initialized) return;

@@ -42,26 +42,89 @@ const getWalletClient = () => {
   });
 };
 
-// Mock function to verify if user qualifies to join the group
-async function verifyUserQualification(walletAddress: string): Promise<{ qualified: boolean; reason?: string }> {
-  // TODO: Implement your actual qualification logic here
-  // Examples:
-  // - Check if user holds a specific NFT
-  // - Check if user has minimum token balance
-  // - Check whitelist
-  // - Check if user hasn't already joined
+// Function to verify if user qualifies to join the specific requested group
+async function verifyUserQualificationForGroup(
+  walletAddress: string, 
+  requestedGroupId: string
+): Promise<{ qualified: boolean; reason?: string }> {
+  console.log(`🔍 Verifying qualification for wallet ${walletAddress} to join group ${requestedGroupId}`);
   
-  console.log(`Verifying qualification for wallet: ${walletAddress}`);
+  // TODO: Implement actual token balance checking logic here
+  // For now, we'll implement a basic mock that shows the intended logic
   
-  // Mock qualification check - for now, everyone qualifies
-  // You can add real logic here later
-  const isQualified = true; // Replace with actual logic
-  
-  if (!isQualified) {
-    return { qualified: false, reason: 'User does not meet qualification requirements' };
+  try {
+    // In a real implementation, you would:
+    // 1. Read user's token balance from the blockchain
+    // 2. Determine which tier they qualify for based on balance thresholds
+    // 3. Validate that requestedGroupId matches their qualification tier
+    
+    // Mock token balance - in reality, read from blockchain
+    const mockTokenBalance = BigInt(1000); // Replace with actual balance check
+    
+    // Mock group ID mappings - in reality, read from voting contract
+    const MOCK_SHRIMP_GROUP_ID = "1";
+    const MOCK_DOLPHIN_GROUP_ID = "2"; 
+    const MOCK_WHALE_GROUP_ID = "3";
+    
+    // Mock tier thresholds - configure based on your tokenomics
+    const SHRIMP_THRESHOLD = BigInt(100);
+    const DOLPHIN_THRESHOLD = BigInt(1000);
+    const WHALE_THRESHOLD = BigInt(10000);
+    
+    // Determine which groups user qualifies for (users can qualify for multiple)
+    const qualifiesForShrimp = mockTokenBalance >= SHRIMP_THRESHOLD;
+    const qualifiesForDolphin = mockTokenBalance >= DOLPHIN_THRESHOLD;
+    const qualifiesForWhale = mockTokenBalance >= WHALE_THRESHOLD;
+    
+    console.log(`💰 User balance: ${mockTokenBalance.toString()}`);
+    console.log(`📊 Qualifications: Shrimp=${qualifiesForShrimp}, Dolphin=${qualifiesForDolphin}, Whale=${qualifiesForWhale}`);
+    
+    // Validate the requested group
+    switch (requestedGroupId) {
+      case MOCK_SHRIMP_GROUP_ID:
+        if (!qualifiesForShrimp) {
+          return { 
+            qualified: false, 
+            reason: `Insufficient token balance for Shrimp group. Required: ${SHRIMP_THRESHOLD.toString()}, Current: ${mockTokenBalance.toString()}` 
+          };
+        }
+        break;
+        
+      case MOCK_DOLPHIN_GROUP_ID:
+        if (!qualifiesForDolphin) {
+          return { 
+            qualified: false, 
+            reason: `Insufficient token balance for Dolphin group. Required: ${DOLPHIN_THRESHOLD.toString()}, Current: ${mockTokenBalance.toString()}` 
+          };
+        }
+        break;
+        
+      case MOCK_WHALE_GROUP_ID:
+        if (!qualifiesForWhale) {
+          return { 
+            qualified: false, 
+            reason: `Insufficient token balance for Whale group. Required: ${WHALE_THRESHOLD.toString()}, Current: ${mockTokenBalance.toString()}` 
+          };
+        }
+        break;
+        
+      default:
+        return { 
+          qualified: false, 
+          reason: `Invalid group ID: ${requestedGroupId}. Valid groups: ${MOCK_SHRIMP_GROUP_ID}, ${MOCK_DOLPHIN_GROUP_ID}, ${MOCK_WHALE_GROUP_ID}` 
+        };
+    }
+    
+    console.log(`✅ User ${walletAddress} qualifies for group ${requestedGroupId}`);
+    return { qualified: true };
+    
+  } catch (error) {
+    console.error('Error checking user qualification:', error);
+    return { 
+      qualified: false, 
+      reason: 'Failed to verify user qualifications. Please try again.' 
+    };
   }
-  
-  return { qualified: true };
 }
 
 // Function to add user to Semaphore group via voting contract
@@ -133,16 +196,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<JoinPollR
       }, { status: 401 });
     }
     
-    // 2. Verify user qualification
-    const qualification = await verifyUserQualification(walletAddress);
+    // 2. Verify user qualification for the specific requested group
+    const qualification = await verifyUserQualificationForGroup(walletAddress, groupId);
     if (!qualification.qualified) {
       return NextResponse.json({
         success: false,
-        error: qualification.reason ?? 'User not qualified'
+        error: qualification.reason ?? 'User not qualified for the requested group'
       }, { status: 403 });
     }
     
-    console.log('User qualification verified');
+    console.log(`✅ User qualification verified for group ${groupId}`);
     
     // 3. Send transaction to add user to Semaphore group
     try {
