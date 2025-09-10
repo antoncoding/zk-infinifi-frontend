@@ -20,6 +20,8 @@ import { useStyledToast } from '@/hooks/useStyledToast';
 import { TransactionToast } from '@/components/common/StyledToast';
 import { toast } from 'react-toastify';
 import { Loader2, Shield, Users, Vote, CheckCircle2, AlertCircle } from 'lucide-react';
+import { getExplorerTxURL } from '@/utils/external';
+import { SupportedNetworks } from '@/utils/networks';
 
 function InfoBox({ title, children, className = '' }: { 
   title: string; 
@@ -71,7 +73,7 @@ export default function VotingDashboard() {
   const [selectedGroupForJoining, setSelectedGroupForJoining] = useState<'whale' | 'dolphin' | 'shrimp' | null>(null);
   
   // Toast hook for notifications
-  const { success: showSuccessToast } = useStyledToast();
+  const { success: showSuccessToast, error: showErrorToast } = useStyledToast();
   
   // Semaphore hooks
   const { 
@@ -160,44 +162,93 @@ export default function VotingDashboard() {
     void handleJoinGroup(groupType);
   };
 
+  // Handle join group success
+  const handleJoinGroupSuccess = (groupType: string, transactionHash?: string) => {
+    const groupName = groupType.charAt(0).toUpperCase() + groupType.slice(1);
+    console.log(`✅ Successfully joined ${groupName} group!`, transactionHash ? `Transaction: ${transactionHash}` : '');
+    
+    // Show toast notification with transaction hash
+    if (transactionHash) {
+      toast.success(
+        <TransactionToast 
+          title={`Joined ${groupName} Group! 🎉`} 
+          description="You can now participate in anonymous voting."
+          hash={transactionHash}
+        />,
+        {
+          autoClose: 8000, // Show longer for transaction hash
+          onClick: () => {
+            // Open block explorer when clicked (Base Sepolia)
+            const explorerUrl = getExplorerTxURL(transactionHash, SupportedNetworks.BaseSepolia);
+            window.open(explorerUrl, '_blank');
+          }
+        }
+      );
+    } else {
+      showSuccessToast(
+        `Joined ${groupName} Group! 🎉`, 
+        'You can now participate in anonymous voting.'
+      );
+    }
+    
+    // Reset state and refresh data
+    setSelectedGroupForJoining(null);
+    refetchAllocationData();
+    refetchGroupData();
+  };
+
+  // Handle join group error
+  const handleJoinGroupError = (error: string, groupType?: string) => {
+    const groupName = groupType ? ` ${groupType.charAt(0).toUpperCase() + groupType.slice(1)}` : '';
+    console.error('❌ Join group error:', error);
+    showErrorToast(`Failed to Join${groupName} Group`, error);
+  };
+
   // Handle join group - now uses selected group instead of activeGroup
   const handleJoinGroup = async (groupType?: 'whale' | 'dolphin' | 'shrimp') => {
-    const targetGroupType = groupType ?? selectedGroupForJoining;
-    if (!userState.identity || !targetGroupType) {
-      console.error('Missing identity or group type for joining');
-      return;
-    }
-    
-    // Get the group ID based on the selected type
-    let targetGroupId: bigint | undefined;
-    switch (targetGroupType) {
-      case 'whale':
-        targetGroupId = whaleGroupId;
-        break;
-      case 'dolphin':
-        targetGroupId = dolphinGroupId;
-        break;
-      case 'shrimp':
-        targetGroupId = shrimpGroupId;
-        break;
-    }
-    
-    if (!targetGroupId) {
-      console.error(`Group ID not found for ${targetGroupType} group`);
-      return;
-    }
-    
-    const storedSignature = getStoredSignature();
-    if (!storedSignature) {
-      console.error('No signature found - this should not happen');
-      return;
-    }
-    
-    console.log(`🎯 Attempting to join ${targetGroupType} group with ID: ${targetGroupId.toString()}`);
-    const success = await joinGroup(userState.identity, targetGroupId, storedSignature);
-    if (success) {
-      console.log(`✅ Successfully joined ${targetGroupType} group!`);
-      setSelectedGroupForJoining(null);
+    try {
+      const targetGroupType = groupType ?? selectedGroupForJoining;
+      if (!userState.identity || !targetGroupType) {
+        handleJoinGroupError('Missing identity or group type for joining', targetGroupType ?? undefined);
+        return;
+      }
+      
+      // Get the group ID based on the selected type
+      let targetGroupId: bigint | undefined;
+      switch (targetGroupType) {
+        case 'whale':
+          targetGroupId = whaleGroupId;
+          break;
+        case 'dolphin':
+          targetGroupId = dolphinGroupId;
+          break;
+        case 'shrimp':
+          targetGroupId = shrimpGroupId;
+          break;
+      }
+      
+      if (!targetGroupId) {
+        handleJoinGroupError(`Group ID not found for ${targetGroupType} group`, targetGroupType);
+        return;
+      }
+      
+      const storedSignature = getStoredSignature();
+      if (!storedSignature) {
+        handleJoinGroupError('No signature found - please generate identity first', targetGroupType);
+        return;
+      }
+      
+      console.log(`🎯 Attempting to join ${targetGroupType} group with ID: ${targetGroupId.toString()}`);
+      const result = await joinGroup(userState.identity, targetGroupId, storedSignature);
+      
+      if (result.success) {
+        handleJoinGroupSuccess(targetGroupType, result.transactionHash);
+      } else {
+        handleJoinGroupError(result.error ?? 'Unknown error occurred', targetGroupType);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unexpected error occurred';
+      handleJoinGroupError(errorMessage, groupType);
     }
   };
 

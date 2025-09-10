@@ -16,8 +16,14 @@ type JoinGroupResponse = {
   error?: string;
 };
 
+type JoinGroupResult = {
+  success: boolean;
+  transactionHash?: string;
+  error?: string;
+};
+
 type JoinGroupHookResult = {
-  joinGroup: (identity: Identity, groupId: bigint, storedSignature?: string) => Promise<boolean>;
+  joinGroup: (identity: Identity, groupId: bigint, storedSignature?: string) => Promise<JoinGroupResult>;
   isJoining: boolean;
   error: string | null;
 };
@@ -31,19 +37,22 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const joinGroup = useCallback(async (identity: Identity, groupId: bigint, storedSignature?: string): Promise<boolean> => {
+  const joinGroup = useCallback(async (identity: Identity, groupId: bigint, storedSignature?: string): Promise<JoinGroupResult> => {
     if (!address) {
-      setError('Wallet not connected');
-      return false;
+      const error = 'Wallet not connected';
+      setError(error);
+      return { success: false, error };
     }
 
     try {
       setIsJoining(true);
       setError(null);
 
-      // Use stored signature or throw error if not available
+      // Use stored signature or return error if not available
       if (!storedSignature) {
-        throw new Error('No signature available. Please generate identity first.');
+        const error = 'No signature available. Please generate identity first.';
+        setError(error);
+        return { success: false, error };
       }
       
       const signature = storedSignature;
@@ -79,7 +88,9 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
       const result = await response.json() as JoinGroupResponse;
 
       if (!result.success) {
-        throw new Error(result.error ?? 'Join group API returned failure');
+        const error = result.error ?? 'Join group API returned failure';
+        setError(error);
+        return { success: false, error };
       }
 
       console.log('Successfully joined group! Transaction:', result.transactionHash);
@@ -87,7 +98,10 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
       // Call success callback
       onSuccess?.();
       
-      return true;
+      return {
+        success: true,
+        transactionHash: result.transactionHash
+      };
 
     } catch (err) {
       let errorMessage = 'Failed to join group';
@@ -104,7 +118,7 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
 
       setError(errorMessage);
       console.error('Join group error:', err);
-      return false;
+      return { success: false, error: errorMessage };
 
     } finally {
       setIsJoining(false);
