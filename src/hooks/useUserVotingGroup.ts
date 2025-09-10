@@ -69,17 +69,20 @@ export function useUserVotingGroup(
     whaleGroupId,
   }, userIdentity);
 
+  // Memoize group IDs to prevent infinite re-renders
+  const memoizedGroupIds = useMemo(() => ({
+    whaleGroupId,
+    dolphinGroupId,
+    shrimpGroupId,
+  }), [whaleGroupId, dolphinGroupId, shrimpGroupId]);
+
   // Fetch proper Group objects from subgraph with all members
   const {
     groups: semaphoreGroups,
     isLoading: groupsLoading,
     error: groupsError,
     refetchAll: refetchGroups
-  } = useSemaphoreGroups({
-    whaleGroupId,
-    dolphinGroupId,
-    shrimpGroupId,
-  });
+  } = useSemaphoreGroups(memoizedGroupIds);
 
   // Determine active voting group (priority: whale > dolphin > shrimp)
   const activeGroup = useMemo(() => {

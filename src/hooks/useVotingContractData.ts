@@ -47,91 +47,49 @@ export function useVotingContractData(
 
   // Read shrimp group ID
   const { 
-    data: shrimpGroupId,
-    isLoading: isLoadingShrimpId,
-    error: shrimpIdError,
+    data: groupIds,
+    isLoading: isLoadingIds,
+    error: idError,
     refetch: refetchShrimpId
   } = useReadContract({
     address: votingContractAddress,
     abi: votingAbi,
-    functionName: 'shrimpGroupId',
+    functionName: 'getGroupIds',
     query: {
       enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
     },
     chainId: baseSepolia.id,
   });
 
-  // Read dolphin group ID
-  const { 
-    data: dolphinGroupId,
-    isLoading: isLoadingDolphinId,
-    error: dolphinIdError,
-    refetch: refetchDolphinId
-  } = useReadContract({
-    address: votingContractAddress,
-    abi: votingAbi,
-    functionName: 'dolphinGroupId',
-    query: {
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: baseSepolia.id,
-  });
 
-  // Read whale group ID
-  const { 
-    data: whaleGroupId,
-    isLoading: isLoadingWhaleId,
-    error: whaleIdError,
-    refetch: refetchWhaleId
-  } = useReadContract({
-    address: votingContractAddress,
-    abi: votingAbi,
-    functionName: 'whaleGroupId',
-    query: {
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-    },
-    chainId: baseSepolia.id,
-  });
-
-  // Log errors for debugging group IDs
-  if (shrimpIdError) {
-    console.error('❌ useVotingContractData - shrimp group ID error:', {
-      error: shrimpIdError.message,
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
-    });
-  }
-  if (dolphinIdError) {
-    console.error('❌ useVotingContractData - dolphin group ID error:', {
-      error: dolphinIdError.message,
-      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
-    });
-  }
-  if (whaleIdError) {
+  if (idError) {
     console.error('❌ useVotingContractData - whale group ID error:', {
-      error: whaleIdError.message,
+      error: idError.message,
       enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000'
     });
   }
+
+  const shrimpGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[0] : BigInt(0), [])
+  const dolphinGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[1] : BigInt(0), [])
+  const whaleGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[2] : BigInt(0), [])
 
   // Combine loading states
   const isLoading = useMemo(() => {
-    return isLoadingOwner || isLoadingShrimpId || isLoadingDolphinId || isLoadingWhaleId;
-  }, [isLoadingOwner, isLoadingShrimpId, isLoadingDolphinId, isLoadingWhaleId]);
+    return isLoadingOwner || isLoadingIds;
+  }, [isLoadingOwner, isLoadingIds]);
 
   // Combine errors
   const error = useMemo(() => {
-    return ownerError ?? shrimpIdError ?? dolphinIdError ?? whaleIdError ?? null;
-  }, [ownerError, shrimpIdError, dolphinIdError, whaleIdError]);
+    return ownerError ?? idError ?? null;
+  }, [ownerError, idError]);
 
   // Refetch all data
   const refetchAll = useMemo(() => {
     return () => {
       void refetchOwner();
       void refetchShrimpId();
-      void refetchDolphinId();
-      void refetchWhaleId();
     };
-  }, [refetchOwner, refetchShrimpId, refetchDolphinId, refetchWhaleId]);
+  }, [refetchOwner, refetchShrimpId]);
 
   return {
     owner: owner as Address | undefined,

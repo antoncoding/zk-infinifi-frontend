@@ -70,14 +70,14 @@ export function useSemaphoreGroups(groupIds: GroupIds): UseSemaphoreGroupsResult
     } finally {
       setIsLoading(false);
     }
-  }, [groupIds.whaleGroupId, groupIds.dolphinGroupId, groupIds.shrimpGroupId]);
+  }, [groupIds]);
 
   const refetchAll = useCallback(() => {
-    fetchGroups();
+    void fetchGroups();
   }, [fetchGroups]);
 
   useEffect(() => {
-    fetchGroups();
+    void fetchGroups();
   }, [fetchGroups]);
 
   return {

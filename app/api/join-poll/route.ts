@@ -3,7 +3,7 @@ import { createPublicClient, createWalletClient, http, encodeFunctionData } from
 import { baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { verifyMessage } from 'viem';
-import { APP_SIGNATURE_MESSAGE, VOTING_CONTRACT_ADDRESS } from '@/config/semaphore';
+import { APP_SIGNATURE_MESSAGE, ALLOCATION_VOTING } from '@/config/semaphore';
 import { abi as votingAbi } from '@/abis/voting';
 
 // Types for request/response
@@ -144,7 +144,7 @@ async function addUserToSemaphoreGroup(
   
   // Send transaction to voting contract
   const hash: string = await walletClient.sendTransaction({
-    to: VOTING_CONTRACT_ADDRESS,
+    to: ALLOCATION_VOTING,
     data,
   });
   

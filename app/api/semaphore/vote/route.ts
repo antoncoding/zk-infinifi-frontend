@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, createWalletClient, http, encodeFunctionData } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { VOTING_CONTRACT_ADDRESS } from '@/config/semaphore';
+import { ALLOCATION_VOTING } from '@/config/semaphore';
 import { abi as votingAbi } from '@/abis/voting';
 
 // Types for request/response
@@ -55,12 +55,12 @@ async function submitVoteToContract(
   groupId: string,
   walletClient: ReturnType<typeof getWalletClient>
 ): Promise<string> {
-  if (VOTING_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
-    throw new Error('Voting contract address not configured. Please set NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS environment variable.');
+  if (ALLOCATION_VOTING === '0x0000000000000000000000000000000000000000') {
+    throw new Error('Voting contract address not configured. Please set NEXT_PUBLIC_ALLOCATION_VOTING environment variable.');
   }
   
   console.log(`📋 Contract call details:`);
-  console.log(`  Contract Address: ${VOTING_CONTRACT_ADDRESS}`);
+  console.log(`  Contract Address: ${ALLOCATION_VOTING}`);
   console.log(`  Group ID: ${groupId}`);
   console.log(`  Merkle Tree Depth: ${proof.merkleTreeDepth}`);
   console.log(`  Merkle Tree Root: ${proof.merkleTreeRoot}`);
@@ -96,7 +96,7 @@ async function submitVoteToContract(
   
   // Send transaction to voting contract
   const hash: string = await walletClient.sendTransaction({
-    to: VOTING_CONTRACT_ADDRESS,
+    to: ALLOCATION_VOTING,
     data,
   });
   

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { getCurrentVotingState, SEMAPHORE_CONTRACT_ADDRESS, VOTING_CONTRACT_ADDRESS } from '@/config/semaphore';
+import { getCurrentVotingState, SEMAPHORE_CONTRACT_ADDRESS, ALLOCATION_VOTING } from '@/config/semaphore';
 import { Group } from '@semaphore-protocol/group';
 import { Identity } from '@semaphore-protocol/identity';
 import { useSemaphoreIdentity } from '@/hooks/useSemaphoreIdentity';
@@ -15,6 +15,9 @@ import { Button, AddressBadge } from '@/components/common';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Badge } from '@/components/common/Badge';
 import { SemaphoreVoteModal } from '@/components/common/SemaphoreVoteModal';
+import { useStyledToast } from '@/hooks/useStyledToast';
+import { TransactionToast } from '@/components/common/StyledToast';
+import { toast } from 'react-toastify';
 import { Loader2, Shield, Users, Vote, CheckCircle2, AlertCircle } from 'lucide-react';
 
 function InfoBox({ title, children, className = '' }: { 
@@ -64,6 +67,9 @@ export default function VotingDashboard() {
   const votingState = getCurrentVotingState();
   const [showVoteModal, setShowVoteModal] = useState(false);
   
+  // Toast hook for notifications
+  const { success: showSuccessToast } = useStyledToast();
+  
   // Semaphore hooks
   const { 
     userState, 
@@ -86,7 +92,7 @@ export default function VotingDashboard() {
     isLoading: allocationLoading,
     error: allocationError,
     refetchAll: refetchAllocationData
-  } = useAllocationVoting(VOTING_CONTRACT_ADDRESS, SEMAPHORE_CONTRACT_ADDRESS);
+  } = useAllocationVoting(ALLOCATION_VOTING, SEMAPHORE_CONTRACT_ADDRESS);
 
   // User's voting group and membership
   const {
@@ -95,7 +101,7 @@ export default function VotingDashboard() {
     isLoading: groupLoading,
     error: groupError,
     refetchAll: refetchGroupData
-  } = useUserVotingGroup(VOTING_CONTRACT_ADDRESS, userState.identity);
+  } = useUserVotingGroup(ALLOCATION_VOTING, userState.identity);
   
   const { 
     hasVoted, 
@@ -156,8 +162,29 @@ export default function VotingDashboard() {
   };
 
   // Handle vote success
-  const handleVoteSuccess = () => {
-    console.log('Vote cast successfully!');
+  const handleVoteSuccess = (transactionHash?: string) => {
+    console.log('Vote cast successfully!', transactionHash ? `Transaction: ${transactionHash}` : '');
+    
+    // Show toast notification with transaction hash
+    if (transactionHash) {
+      toast.success(
+        <TransactionToast 
+          title="Vote Cast Successfully! 🗳️" 
+          description="Your anonymous vote has been recorded on the blockchain."
+          hash={transactionHash}
+        />,
+        {
+          autoClose: 8000, // Show longer for transaction hash
+          onClick: () => {
+            // Open block explorer when clicked (Base Sepolia)
+            window.open(`https://sepolia.basescan.org/tx/${transactionHash}`, '_blank');
+          }
+        }
+      );
+    } else {
+      showSuccessToast('Vote Cast Successfully! 🗳️', 'Your anonymous vote has been recorded.');
+    }
+    
     refetchAllocationData();
     refetchGroupData();
     void refreshResults();
@@ -176,15 +203,15 @@ export default function VotingDashboard() {
       });
       
       // Use the real submitVote function which generates proofs and calls backend
-      const success = await submitVote(voteOption, identity, group);
+      const result = await submitVote(voteOption, identity, group);
       
-      console.log('📊 Vote submission result:', success);
+      console.log('📊 Vote submission result:', result);
       
-      if (success) {
-        handleVoteSuccess();
+      if (result.success) {
+        handleVoteSuccess(result.transactionHash);
       }
       
-      return success;
+      return result.success;
     } catch (error) {
       console.error('❌ Vote submission error:', error);
       return false;
@@ -417,10 +444,10 @@ export default function VotingDashboard() {
           {/* Contract Information */}
           <InfoBox title="Contract Information" className="md:col-span-2">
             <div className="space-y-2">
-              {VOTING_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000' && (
+              {ALLOCATION_VOTING !== '0x0000000000000000000000000000000000000000' && (
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Voting Contract:</span>
-                  <AddressBadge address={VOTING_CONTRACT_ADDRESS} />
+                  <AddressBadge address={ALLOCATION_VOTING} />
                 </div>
               )}
               <div className="flex justify-between">
@@ -450,7 +477,7 @@ export default function VotingDashboard() {
       <SemaphoreVoteModal
         isOpen={showVoteModal}
         onClose={() => setShowVoteModal(false)}
-        onVoteSuccess={handleVoteSuccess}
+        onVoteSuccess={() => handleVoteSuccess()}
         userIdentity={userState.identity}
         group={activeGroup.group}
         onSubmitVote={handleVote}

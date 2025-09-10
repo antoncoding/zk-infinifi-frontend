@@ -16,7 +16,7 @@ type SemaphoreVotingHookResult = {
   hasVoted: boolean;
   voteResults: Record<string, number>;
   totalVotes: number;
-  submitVote: (voteOption: number, identity: Identity, group: Group) => Promise<boolean>;
+  submitVote: (voteOption: number, identity: Identity, group: Group) => Promise<{ success: boolean; transactionHash?: string }>;
   refreshResults: () => Promise<void>;
   isVoting: boolean;
   loading: boolean;
@@ -101,7 +101,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     } finally {
       setLoading(false);
     }
-  }, [loading, fetchVoteResults]);
+  }, [loading, fetchVoteResults, checkUserVotingStatus, userIdentity]);
 
   // Generate voting proof
   const generateVotingProof = useCallback(async (
@@ -132,13 +132,13 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     voteOption: number, 
     identity: Identity, 
     group: Group
-  ): Promise<boolean> => {
+  ): Promise<{ success: boolean; transactionHash?: string }> => {
     if (!identity) {
       setError({
         type: 'NOT_GROUP_MEMBER',
         message: 'Identity required for voting'
       });
-      return false;
+      return { success: false };
     }
 
     if (hasVoted) {
@@ -146,7 +146,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
         type: 'ALREADY_VOTED',
         message: 'You have already voted'
       });
-      return false;
+      return { success: false };
     }
 
     try {
@@ -218,7 +218,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       setHasVoted(true);
       void refreshResults();
       
-      return true;
+      return { success: true, transactionHash: result.transactionHash };
     } catch (err) {
       let errorType: VotingError['type'] = 'SUBMISSION_FAILED';
       let errorMessage = 'Failed to submit vote';
@@ -248,16 +248,16 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
 
       setError({ type: errorType, message: errorMessage });
       console.error('Error submitting vote:', err);
-      return false;
+      return { success: false };
     } finally {
       setIsVoting(false);
     }
-  }, [hasVoted, generateVotingProof, groupId]);
+  }, [hasVoted, generateVotingProof, groupId, refreshResults]);
 
   // Initialize vote results on mount only (not when dependencies change)
   useEffect(() => {
     void refreshResults();
-  }, []); // Empty dependency array to run only once
+  }, [refreshResults]); // Include refreshResults to satisfy linter
 
   return {
     hasVoted,
