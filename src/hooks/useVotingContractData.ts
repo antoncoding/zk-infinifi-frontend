@@ -9,6 +9,9 @@ type VotingContractDataResult = {
   shrimpGroupId: bigint | undefined;
   dolphinGroupId: bigint | undefined;
   whaleGroupId: bigint | undefined;
+  shrimpWeight: bigint | undefined;
+  dolphinWeight: bigint | undefined;
+  whaleWeight: bigint | undefined;
   isLoading: boolean;
   error: Error | null;
   refetchAll: () => void;
@@ -69,14 +72,62 @@ export function useVotingContractData(
     });
   }
 
-  const shrimpGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[0] : BigInt(0), [])
-  const dolphinGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[1] : BigInt(0), [])
-  const whaleGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[2] : BigInt(0), [])
+  const shrimpGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[0] : BigInt(0), [groupIds])
+  const dolphinGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[1] : BigInt(0), [groupIds])
+  const whaleGroupId = useMemo(() => groupIds && (groupIds as bigint[]).length >= 3 ? (groupIds as bigint[])[2] : BigInt(0), [groupIds])
+
+  // Read shrimp group weight
+  const { 
+    data: shrimpWeight,
+    isLoading: isLoadingShrimpWeight,
+    refetch: refetchShrimpWeight
+  } = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'groupWeights',
+    args: [shrimpGroupId],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && shrimpGroupId !== BigInt(0),
+    },
+    chainId: baseSepolia.id,
+  });
+
+  // Read dolphin group weight
+  const { 
+    data: dolphinWeight,
+    isLoading: isLoadingDolphinWeight,
+    refetch: refetchDolphinWeight
+  } = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'groupWeights',
+    args: [dolphinGroupId],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && dolphinGroupId !== BigInt(0),
+    },
+    chainId: baseSepolia.id,
+  });
+
+  // Read whale group weight
+  const { 
+    data: whaleWeight,
+    isLoading: isLoadingWhaleWeight,
+    refetch: refetchWhaleWeight
+  } = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'groupWeights',
+    args: [whaleGroupId],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && whaleGroupId !== BigInt(0),
+    },
+    chainId: baseSepolia.id,
+  });
 
   // Combine loading states
   const isLoading = useMemo(() => {
-    return isLoadingOwner || isLoadingIds;
-  }, [isLoadingOwner, isLoadingIds]);
+    return isLoadingOwner || isLoadingIds || isLoadingShrimpWeight || isLoadingDolphinWeight || isLoadingWhaleWeight;
+  }, [isLoadingOwner, isLoadingIds, isLoadingShrimpWeight, isLoadingDolphinWeight, isLoadingWhaleWeight]);
 
   // Combine errors
   const error = useMemo(() => {
@@ -88,14 +139,20 @@ export function useVotingContractData(
     return () => {
       void refetchOwner();
       void refetchShrimpId();
+      void refetchShrimpWeight();
+      void refetchDolphinWeight();
+      void refetchWhaleWeight();
     };
-  }, [refetchOwner, refetchShrimpId]);
+  }, [refetchOwner, refetchShrimpId, refetchShrimpWeight, refetchDolphinWeight, refetchWhaleWeight]);
 
   return {
     owner: owner as Address | undefined,
     shrimpGroupId: shrimpGroupId as bigint | undefined,
     dolphinGroupId: dolphinGroupId as bigint | undefined,
     whaleGroupId: whaleGroupId as bigint | undefined,
+    shrimpWeight: shrimpWeight as bigint | undefined,
+    dolphinWeight: dolphinWeight as bigint | undefined,
+    whaleWeight: whaleWeight as bigint | undefined,
     isLoading,
     error,
     refetchAll,

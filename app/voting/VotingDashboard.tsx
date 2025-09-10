@@ -15,6 +15,7 @@ import { Button, AddressBadge } from '@/components/common';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Badge } from '@/components/common/Badge';
 import { SemaphoreVoteModal } from '@/components/common/SemaphoreVoteModal';
+import { GroupSelectionModal } from '@/components/common/GroupSelectionModal';
 import { useStyledToast } from '@/hooks/useStyledToast';
 import { TransactionToast } from '@/components/common/StyledToast';
 import { toast } from 'react-toastify';
@@ -66,6 +67,8 @@ export default function VotingDashboard() {
   const { address, isConnected } = useAccount();
   const votingState = getCurrentVotingState();
   const [showVoteModal, setShowVoteModal] = useState(false);
+  const [showGroupSelectionModal, setShowGroupSelectionModal] = useState(false);
+  const [selectedGroupForJoining, setSelectedGroupForJoining] = useState<'whale' | 'dolphin' | 'shrimp' | null>(null);
   
   // Toast hook for notifications
   const { success: showSuccessToast } = useStyledToast();
@@ -86,6 +89,9 @@ export default function VotingDashboard() {
     shrimpGroupId,
     dolphinGroupId,
     whaleGroupId,
+    shrimpWeight,
+    dolphinWeight,
+    whaleWeight,
     shrimpMembers,
     dolphinMembers,
     whaleMembers,
@@ -141,10 +147,43 @@ export default function VotingDashboard() {
     }
   };
 
-  // Handle join group - now uses the API with stored signature
-  const handleJoinGroup = async () => {
-    if (!userState.identity || !activeGroup.groupId) {
-      console.error('Missing identity or group ID for joining');
+  // Handle opening group selection modal
+  const handleOpenGroupSelection = () => {
+    setShowGroupSelectionModal(true);
+  };
+
+  // Handle group selection from modal
+  const handleGroupSelected = (groupType: 'whale' | 'dolphin' | 'shrimp') => {
+    setSelectedGroupForJoining(groupType);
+    setShowGroupSelectionModal(false);
+    // Immediately proceed with joining the selected group
+    void handleJoinGroup(groupType);
+  };
+
+  // Handle join group - now uses selected group instead of activeGroup
+  const handleJoinGroup = async (groupType?: 'whale' | 'dolphin' | 'shrimp') => {
+    const targetGroupType = groupType ?? selectedGroupForJoining;
+    if (!userState.identity || !targetGroupType) {
+      console.error('Missing identity or group type for joining');
+      return;
+    }
+    
+    // Get the group ID based on the selected type
+    let targetGroupId: bigint | undefined;
+    switch (targetGroupType) {
+      case 'whale':
+        targetGroupId = whaleGroupId;
+        break;
+      case 'dolphin':
+        targetGroupId = dolphinGroupId;
+        break;
+      case 'shrimp':
+        targetGroupId = shrimpGroupId;
+        break;
+    }
+    
+    if (!targetGroupId) {
+      console.error(`Group ID not found for ${targetGroupType} group`);
       return;
     }
     
@@ -154,10 +193,11 @@ export default function VotingDashboard() {
       return;
     }
     
-    console.log(`🎯 Attempting to join group ${activeGroup.type} with ID: ${activeGroup.groupId.toString()}`);
-    const success = await joinGroup(userState.identity, activeGroup.groupId, storedSignature);
+    console.log(`🎯 Attempting to join ${targetGroupType} group with ID: ${targetGroupId.toString()}`);
+    const success = await joinGroup(userState.identity, targetGroupId, storedSignature);
     if (success) {
-      console.log(`✅ Successfully joined ${activeGroup.type} group!`);
+      console.log(`✅ Successfully joined ${targetGroupType} group!`);
+      setSelectedGroupForJoining(null);
     }
   };
 
@@ -285,7 +325,7 @@ export default function VotingDashboard() {
                 
                 {userStatus === 'not-member' && (
                   <Button 
-                    onClick={() => void handleJoinGroup()}
+                    onClick={handleOpenGroupSelection}
                     disabled={isLoading || isJoining}
                     className="rounded-sm"
                   >
@@ -297,7 +337,7 @@ export default function VotingDashboard() {
                     ) : (
                       <>
                         <Users className="h-4 w-4 mr-2" />
-                        Join Group
+                        Select & Join Group
                       </>
                     )}
                   </Button>
@@ -472,6 +512,28 @@ export default function VotingDashboard() {
           </InfoBox>
         </div>
       </main>
+      
+      {/* Group Selection Modal */}
+      <GroupSelectionModal
+        isOpen={showGroupSelectionModal}
+        onClose={() => setShowGroupSelectionModal(false)}
+        onGroupSelected={handleGroupSelected}
+        groupIds={{
+          shrimpGroupId,
+          dolphinGroupId,
+          whaleGroupId
+        }}
+        groupMemberCounts={{
+          shrimpMembers,
+          dolphinMembers,
+          whaleMembers
+        }}
+        groupWeights={{
+          shrimpWeight: shrimpWeight as bigint | undefined,
+          dolphinWeight: dolphinWeight as bigint | undefined,
+          whaleWeight: whaleWeight as bigint | undefined
+        }}
+      />
       
       {/* Vote Modal */}
       <SemaphoreVoteModal

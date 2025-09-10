@@ -85,6 +85,8 @@ async function submitVoteToContract(
   console.log(`  groupId: ${contractArgs[4]}`);
   console.log(`  points: [${(contractArgs[5] as bigint[]).map(p => p.toString()).join(', ')}]`);
   
+  // TODO: update to most up to date ABI
+
   // Encode the vote function call
   const data = encodeFunctionData({
     abi: votingAbi,

@@ -53,18 +53,10 @@ async function verifyUserQualificationForGroup(
   // For now, we'll implement a basic mock that shows the intended logic
   
   try {
-    // In a real implementation, you would:
-    // 1. Read user's token balance from the blockchain
-    // 2. Determine which tier they qualify for based on balance thresholds
-    // 3. Validate that requestedGroupId matches their qualification tier
     
     // Mock token balance - in reality, read from blockchain
     const mockTokenBalance = BigInt(1000); // Replace with actual balance check
     
-    // Mock group ID mappings - in reality, read from voting contract
-    const MOCK_SHRIMP_GROUP_ID = "1";
-    const MOCK_DOLPHIN_GROUP_ID = "2"; 
-    const MOCK_WHALE_GROUP_ID = "3";
     
     // Mock tier thresholds - configure based on your tokenomics
     const SHRIMP_THRESHOLD = BigInt(100);
@@ -79,43 +71,6 @@ async function verifyUserQualificationForGroup(
     console.log(`💰 User balance: ${mockTokenBalance.toString()}`);
     console.log(`📊 Qualifications: Shrimp=${qualifiesForShrimp}, Dolphin=${qualifiesForDolphin}, Whale=${qualifiesForWhale}`);
     
-    // Validate the requested group
-    switch (requestedGroupId) {
-      case MOCK_SHRIMP_GROUP_ID:
-        if (!qualifiesForShrimp) {
-          return { 
-            qualified: false, 
-            reason: `Insufficient token balance for Shrimp group. Required: ${SHRIMP_THRESHOLD.toString()}, Current: ${mockTokenBalance.toString()}` 
-          };
-        }
-        break;
-        
-      case MOCK_DOLPHIN_GROUP_ID:
-        if (!qualifiesForDolphin) {
-          return { 
-            qualified: false, 
-            reason: `Insufficient token balance for Dolphin group. Required: ${DOLPHIN_THRESHOLD.toString()}, Current: ${mockTokenBalance.toString()}` 
-          };
-        }
-        break;
-        
-      case MOCK_WHALE_GROUP_ID:
-        if (!qualifiesForWhale) {
-          return { 
-            qualified: false, 
-            reason: `Insufficient token balance for Whale group. Required: ${WHALE_THRESHOLD.toString()}, Current: ${mockTokenBalance.toString()}` 
-          };
-        }
-        break;
-        
-      default:
-        return { 
-          qualified: false, 
-          reason: `Invalid group ID: ${requestedGroupId}. Valid groups: ${MOCK_SHRIMP_GROUP_ID}, ${MOCK_DOLPHIN_GROUP_ID}, ${MOCK_WHALE_GROUP_ID}` 
-        };
-    }
-    
-    console.log(`✅ User ${walletAddress} qualifies for group ${requestedGroupId}`);
     return { qualified: true };
     
   } catch (error) {

@@ -10,6 +10,11 @@ type AllocationVotingResult = {
   dolphinGroupId: bigint | undefined;
   whaleGroupId: bigint | undefined;
   
+  // Group weights
+  shrimpWeight: bigint | undefined;
+  dolphinWeight: bigint | undefined;
+  whaleWeight: bigint | undefined;
+  
   // Group member counts
   shrimpMembers: bigint | undefined;
   dolphinMembers: bigint | undefined;
@@ -31,12 +36,15 @@ export function useAllocationVoting(
   votingContractAddress: Address,
   semaphoreContractAddress: Address
 ): AllocationVotingResult {
-  // Get voting contract data (owner, group IDs)
+  // Get voting contract data (owner, group IDs, weights)
   const {
     owner,
     shrimpGroupId,
     dolphinGroupId,
     whaleGroupId,
+    shrimpWeight,
+    dolphinWeight,
+    whaleWeight,
     isLoading: contractLoading,
     error: contractError,
     refetchAll: refetchContract
@@ -77,6 +85,9 @@ export function useAllocationVoting(
     shrimpGroupId,
     dolphinGroupId,
     whaleGroupId,
+    shrimpWeight,
+    dolphinWeight,
+    whaleWeight,
     shrimpMembers,
     dolphinMembers,
     whaleMembers,
