@@ -4,6 +4,7 @@ import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
 import { useVotingContractData } from './useVotingContractData';
 import { useUserGroupMembership } from './useUserGroupMembership';
+import { useSemaphoreGroups } from './useSemaphoreGroups';
 import { SEMAPHORE_CONTRACT_ADDRESS } from '@/config/semaphore';
 
 export type UserGroupType = 'whale' | 'dolphin' | 'shrimp' | null;
@@ -68,6 +69,18 @@ export function useUserVotingGroup(
     whaleGroupId,
   }, userIdentity);
 
+  // Fetch proper Group objects from subgraph with all members
+  const {
+    groups: semaphoreGroups,
+    isLoading: groupsLoading,
+    error: groupsError,
+    refetchAll: refetchGroups
+  } = useSemaphoreGroups({
+    whaleGroupId,
+    dolphinGroupId,
+    shrimpGroupId,
+  });
+
   // Determine active voting group (priority: whale > dolphin > shrimp)
   const activeGroup = useMemo(() => {
     if (!userIdentity) {
@@ -80,9 +93,7 @@ export function useUserVotingGroup(
 
     // Priority order: whale > dolphin > shrimp
     if (userGroupMembership.isWhale && whaleGroupId) {
-      // For development: create group with user's identity
-      // In production: would need to fetch all whale group members
-      const group = new Group([userIdentity.commitment]);
+      const group = semaphoreGroups[whaleGroupId.toString()] ?? null;
       return {
         type: 'whale' as UserGroupType,
         groupId: whaleGroupId,
@@ -91,7 +102,7 @@ export function useUserVotingGroup(
     }
     
     if (userGroupMembership.isDolphin && dolphinGroupId) {
-      const group = new Group([userIdentity.commitment]);
+      const group = semaphoreGroups[dolphinGroupId.toString()] ?? null;
       return {
         type: 'dolphin' as UserGroupType,
         groupId: dolphinGroupId,
@@ -100,7 +111,7 @@ export function useUserVotingGroup(
     }
     
     if (userGroupMembership.isShrimp && shrimpGroupId) {
-      const group = new Group([userIdentity.commitment]);
+      const group = semaphoreGroups[shrimpGroupId.toString()] ?? null;
       return {
         type: 'shrimp' as UserGroupType,
         groupId: shrimpGroupId,
@@ -114,21 +125,22 @@ export function useUserVotingGroup(
       groupId: undefined,
       group: null
     };
-  }, [userIdentity, userGroupMembership, whaleGroupId, dolphinGroupId, shrimpGroupId]);
+  }, [userIdentity, userGroupMembership, whaleGroupId, dolphinGroupId, shrimpGroupId, semaphoreGroups]);
 
   // Combined loading state
-  const isLoading = contractLoading || membershipLoading;
+  const isLoading = contractLoading || membershipLoading || groupsLoading;
 
   // Combined error state
-  const error = contractError ?? membershipError ?? null;
+  const error = contractError ?? membershipError ?? groupsError ?? null;
 
   // Combined refetch
   const refetchAll = useMemo(() => {
     return () => {
       refetchContract();
       refetchMembership();
+      refetchGroups();
     };
-  }, [refetchContract, refetchMembership]);
+  }, [refetchContract, refetchMembership, refetchGroups]);
 
   return {
     activeGroup,

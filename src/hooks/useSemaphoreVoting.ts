@@ -8,8 +8,9 @@ import {
   SubmitVoteResponse,
   VoteResultsResponse,
   VotingError,
-  SemaphoreProofData
 } from '@/types/semaphore';
+
+import { SemaphoreProof } from '@semaphore-protocol/proof';
 
 type SemaphoreVotingHookResult = {
   hasVoted: boolean;
@@ -107,7 +108,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     voteOption: number, 
     identity: Identity, 
     group: Group
-  ): Promise<SemaphoreProofData | null> => {
+  ): Promise<SemaphoreProof | null> => {
     if (!groupId) {
       throw new Error('No groupId provided for proof generation');
     }
@@ -119,18 +120,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       // Use the actual group ID as scope to prevent double voting within that group
       const scope = groupId;
 
-      console.log('🔍 Proof generation details:', {
-        voteOption,
-        groupId: groupId.toString(),
-        groupSize: group.size,
-        message: message.toString(),
-        scope: scope.toString()
-      });
-
-      // Generate the proof
-      const proof = await generateProof(identity, group, message, scope);
-      
-      return proof as SemaphoreProofData;
+      return await generateProof(identity, group, message, scope);
     } catch (err) {
       console.error('Error generating voting proof:', err);
       throw new Error('Failed to generate voting proof');
@@ -165,13 +155,15 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
 
       // Generate proof
       const proof = await generateVotingProof(voteOption, identity, group);
+
+      console.log('proof', proof)
       
       if (!proof) {
         throw new Error('Failed to generate voting proof');
       }
 
       // Verify proof locally before submitting
-      const isValidProof = await verifyProof(proof);
+      const isValidProof = await verifyProof(proof as unknown as SemaphoreProof);
       if (!isValidProof) {
         throw new Error('Generated proof is invalid');
       }

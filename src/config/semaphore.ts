@@ -21,6 +21,7 @@ export type SemaphoreConfig = {
   votingContractAddress: Address;
   appSignatureMessage: string;
   testing: boolean;
+  subgraphUrl: string;
 };
 
 export const SEMAPHORE_CONTRACT_ADDRESS: Address = '0x8A1fd199516489B0Fb7153EB5f075cDAC83c693D';
@@ -33,6 +34,9 @@ export const APP_SIGNATURE_MESSAGE = "Sign this message to generate your anonymo
 
 // Testing configuration
 export const SEMAPHORE_TESTING_MODE = true;
+
+// Subgraph configuration
+export const SEMAPHORE_SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/14377/semaphore-base-sepolia/v4.5.0';
 
 // Current voting state - this replaces the hardcoded polls array
 export const CURRENT_VOTING_STATE: SemaphoreVotingState = {
@@ -53,6 +57,7 @@ export function getSemaphoreConfig(): SemaphoreConfig {
     votingContractAddress: VOTING_CONTRACT_ADDRESS,
     appSignatureMessage: APP_SIGNATURE_MESSAGE,
     testing: SEMAPHORE_TESTING_MODE,
+    subgraphUrl: SEMAPHORE_SUBGRAPH_URL,
   };
 }
 

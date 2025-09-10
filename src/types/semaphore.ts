@@ -1,5 +1,6 @@
 import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
+import { SemaphoreProof } from '@semaphore-protocol/proof';
 
 export type SemaphoreIdentityStorage = {
   privateKey: string;
@@ -10,15 +11,6 @@ export type SemaphoreIdentityStorage = {
 export type SemaphoreGroupMember = {
   commitment: string;
   index: number;
-};
-
-export type SemaphoreProofData = {
-  merkleTreeDepth: number;
-  merkleTreeRoot: bigint;
-  nullifier: bigint;
-  message: bigint;
-  scope: bigint;
-  points: readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
 };
 
 export type VotingProofRequest = {
@@ -42,7 +34,7 @@ export type JoinGroupResponse = {
 
 export type SubmitVoteRequest = {
   vote: number;
-  proof: SemaphoreProofData;
+  proof: SemaphoreProof;
   nullifier: string;
 };
 

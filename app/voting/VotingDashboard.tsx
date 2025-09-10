@@ -171,7 +171,8 @@ export default function VotingDashboard() {
         identityCommitment: identity.commitment.toString(),
         groupSize: group.size,
         activeGroupType: activeGroup.type,
-        activeGroupId: activeGroup.groupId?.toString()
+        activeGroupId: activeGroup.groupId?.toString(),
+        group
       });
       
       // Use the real submitVote function which generates proofs and calls backend
@@ -195,7 +196,6 @@ export default function VotingDashboard() {
   console.log('🔍 Group debug info:', {
     activeGroupType: activeGroup.type,
     activeGroupId: activeGroup.groupId?.toString(),
-    votingGroup: activeGroup.group ? `Group with ${activeGroup.group.size} members` : 'null',
     memberships: memberships,
     hasUserIdentity: !!userState.identity,
     userCommitment: userState.identity?.commitment.toString().slice(0, 10) + '...'
