@@ -94,6 +94,8 @@ export default function VotingDashboard() {
     shrimpWeight,
     dolphinWeight,
     whaleWeight,
+    liquidFarmWeights,
+    illiquidFarmWeights,
     shrimpMembers,
     dolphinMembers,
     whaleMembers,
@@ -113,7 +115,6 @@ export default function VotingDashboard() {
   
   const { 
     hasVoted, 
-    voteResults, 
     loading: votingLoading,
     submitAllocation,
     refreshResults,
@@ -468,8 +469,8 @@ export default function VotingDashboard() {
           </InfoBox>
 
           {/* Active Voting Group */}
-          {activeGroup.type && (
-            <InfoBox title="Active Voting Group" className="border-green-200 bg-green-50">
+          <InfoBox title="Voting Group" className={activeGroup.type ? "border-green-200 bg-green-50" : "border-gray-200 bg-gray-50"}>
+            {activeGroup.type ? (
               <div className="flex items-center justify-between p-3 bg-white rounded border-l-4 border-green-500">
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">
@@ -482,8 +483,33 @@ export default function VotingDashboard() {
                 </div>
                 <Badge className="bg-green-100 text-green-700">Active</Badge>
               </div>
-            </InfoBox>
-          )}
+            ) : (
+              <div className="flex items-center justify-center p-6 bg-white rounded border-l-4 border-gray-300">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">👥</div>
+                  <p className="font-medium text-gray-700 mb-2">No Active Group</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {!isConnected 
+                      ? "Connect your wallet and generate an identity to join a voting group"
+                      : !userState.hasIdentity 
+                        ? "Generate your anonymous identity to join a voting group"
+                        : "Join a group to participate in allocation voting"
+                    }
+                  </p>
+                  {isConnected && userState.hasIdentity && (
+                    <Button 
+                      onClick={handleOpenGroupSelection}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Join Group
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </InfoBox>
 
           {/* Group Memberships */}
           <InfoBox title="All Group Tiers">
@@ -514,78 +540,120 @@ export default function VotingDashboard() {
             </div>
           </InfoBox>
 
-          {/* Farm Options & Results */}
-          <InfoBox title="Farm Options" className="md:col-span-2 lg:col-span-1">
-            <div className="space-y-4">
+          {/* Farm Weights & Status */}
+          <InfoBox title="Farm Weights" className="md:col-span-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Liquid Farms */}
               <div>
-                <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                <div className="font-medium text-sm mb-3 flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   Liquid Farms
                 </div>
                 <div className="space-y-2">
-                  {votingState.liquidAssets.map((asset) => (
-                    <div key={asset.id} className="flex items-center justify-between p-2 rounded-md bg-blue-50">
-                      <div className="flex-1">
-                        <div className="font-medium text-xs">{asset.name}</div>
-                        <div className="text-xs text-muted-foreground">{asset.description}</div>
-                      </div>
-                      <div className="text-xs font-medium ml-3">
-                        {voteResults[asset.id] ?? 0} allocations
-                      </div>
+                  {(() => {
+                    // Calculate total liquid weight for percentages
+                    const liquidAssetsWithData = votingState.liquidAssets
+                      .map(asset => ({
+                        ...asset,
+                        weightData: liquidFarmWeights[asset.id]
+                      }))
+                      .filter(item => item.weightData);
+
+                    const totalNextWeight = liquidAssetsWithData.reduce((sum, item) => 
+                      sum + Number(item.weightData!.nextWeight), 0);
+
+                    // Sort by next weight (highest first)
+                    const sortedAssets = liquidAssetsWithData.sort((a, b) => 
+                      Number(b.weightData!.nextWeight) - Number(a.weightData!.nextWeight));
+
+                    return sortedAssets.map((asset) => {
+                      const nextPercentage = totalNextWeight > 0 ? 
+                        (Number(asset.weightData!.nextWeight) / totalNextWeight * 100) : 0;
+
+                      return (
+                        <div 
+                          key={asset.id} 
+                          className="relative border rounded-md p-3 overflow-hidden"
+                          style={{
+                            background: `linear-gradient(to right, rgb(219 234 254) ${nextPercentage}%, rgb(241 245 249) ${nextPercentage}%)`
+                          }}
+                        >
+                          <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm text-blue-900 truncate">{asset.name}</div>
+                              <div className="text-xs text-blue-700 truncate">{asset.description}</div>
+                            </div>
+                            <div className="text-right ml-3">
+                              <div className="text-sm font-semibold text-blue-800">{nextPercentage.toFixed(1)}%</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                  
+                  {votingState.liquidAssets.filter(asset => !liquidFarmWeights[asset.id]).length > 0 && (
+                    <div className="text-xs text-muted-foreground text-center py-4 border rounded-md" style={{ background: 'rgb(241 245 249)' }}>
+                      Loading weight data...
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
               
               {/* Illiquid Farms */}
               <div>
-                <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                <div className="font-medium text-sm mb-3 flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                   Illiquid Farms
                 </div>
                 <div className="space-y-2">
-                  {votingState.illiquidAssets.map((asset) => (
-                    <div key={asset.id} className="flex items-center justify-between p-2 rounded-md bg-purple-50">
-                      <div className="flex-1">
-                        <div className="font-medium text-xs">{asset.name}</div>
-                        <div className="text-xs text-muted-foreground">{asset.description}</div>
-                      </div>
-                      <div className="text-xs font-medium ml-3">
-                        {voteResults[asset.id] ?? 0} allocations
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </InfoBox>
+                  {(() => {
+                    // Calculate total illiquid weight for percentages
+                    const illiquidAssetsWithData = votingState.illiquidAssets
+                      .map(asset => ({
+                        ...asset,
+                        weightData: illiquidFarmWeights[asset.id]
+                      }))
+                      .filter(item => item.weightData);
 
-          {/* Contract Information */}
-          <InfoBox title="Contract Information" className="md:col-span-2">
-            <div className="space-y-2">
-              {ALLOCATION_VOTING !== '0x0000000000000000000000000000000000000000' && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Voting Contract:</span>
-                  <AddressBadge address={ALLOCATION_VOTING} />
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Semaphore Contract:</span>
-                <AddressBadge address={SEMAPHORE_CONTRACT_ADDRESS} />
-              </div>
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Shrimp Group</div>
-                  <div className="text-sm font-mono">{shrimpGroupId?.toString() ?? '-'}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Dolphin Group</div>
-                  <div className="text-sm font-mono">{dolphinGroupId?.toString() ?? '-'}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Whale Group</div>
-                  <div className="text-sm font-mono">{whaleGroupId?.toString() ?? '-'}</div>
+                    const totalNextWeight = illiquidAssetsWithData.reduce((sum, item) => 
+                      sum + Number(item.weightData!.nextWeight), 0);
+
+                    // Sort by next weight (highest first)
+                    const sortedAssets = illiquidAssetsWithData.sort((a, b) => 
+                      Number(b.weightData!.nextWeight) - Number(a.weightData!.nextWeight));
+
+                    return sortedAssets.map((asset) => {
+                      const nextPercentage = totalNextWeight > 0 ? 
+                        (Number(asset.weightData!.nextWeight) / totalNextWeight * 100) : 0;
+
+                      return (
+                        <div 
+                          key={asset.id} 
+                          className="relative border rounded-md p-3 overflow-hidden"
+                          style={{
+                            background: `linear-gradient(to right, rgb(243 232 255) ${nextPercentage}%, rgb(241 245 249) ${nextPercentage}%)`
+                          }}
+                        >
+                          <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm text-purple-900 truncate">{asset.name}</div>
+                              <div className="text-xs text-purple-700 truncate">{asset.description}</div>
+                            </div>
+                            <div className="text-right ml-3">
+                              <div className="text-sm font-semibold text-purple-800">{nextPercentage.toFixed(1)}%</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                  
+                  {votingState.illiquidAssets.filter(asset => !illiquidFarmWeights[asset.id]).length > 0 && (
+                    <div className="text-xs text-muted-foreground text-center py-4 border rounded-md" style={{ background: 'rgb(241 245 249)' }}>
+                      Loading weight data...
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

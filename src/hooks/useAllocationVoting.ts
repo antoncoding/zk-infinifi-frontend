@@ -3,6 +3,12 @@ import { Address } from 'viem';
 import { useVotingContractData } from './useVotingContractData';
 import { useGroupMemberCounts } from './useGroupMemberCounts';
 
+type FarmWeightData = {
+  epoch: number;
+  currentWeight: bigint;
+  nextWeight: bigint;
+};
+
 type AllocationVotingResult = {
   // Contract data
   owner: Address | undefined;
@@ -14,6 +20,10 @@ type AllocationVotingResult = {
   shrimpWeight: bigint | undefined;
   dolphinWeight: bigint | undefined;
   whaleWeight: bigint | undefined;
+  
+  // Farm weight data
+  liquidFarmWeights: Record<string, FarmWeightData>;
+  illiquidFarmWeights: Record<string, FarmWeightData>;
   
   // Group member counts
   shrimpMembers: bigint | undefined;
@@ -36,7 +46,7 @@ export function useAllocationVoting(
   votingContractAddress: Address,
   semaphoreContractAddress: Address
 ): AllocationVotingResult {
-  // Get voting contract data (owner, group IDs, weights)
+  // Get voting contract data (owner, group IDs, weights, farm weights)
   const {
     owner,
     shrimpGroupId,
@@ -45,6 +55,8 @@ export function useAllocationVoting(
     shrimpWeight,
     dolphinWeight,
     whaleWeight,
+    liquidFarmWeights,
+    illiquidFarmWeights,
     isLoading: contractLoading,
     error: contractError,
     refetchAll: refetchContract
@@ -88,6 +100,8 @@ export function useAllocationVoting(
     shrimpWeight,
     dolphinWeight,
     whaleWeight,
+    liquidFarmWeights,
+    illiquidFarmWeights,
     shrimpMembers,
     dolphinMembers,
     whaleMembers,

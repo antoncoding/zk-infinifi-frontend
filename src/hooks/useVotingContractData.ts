@@ -135,63 +135,90 @@ export function useVotingContractData(
     chainId: baseSepolia.id,
   });
 
-  // Read farm weight data for liquid assets
-  const liquidFarmWeightQueries = votingState.liquidAssets.map(asset => 
-    useReadContract({
-      address: votingContractAddress,
-      abi: votingAbi,
-      functionName: 'farmWeightData',
-      args: [asset.address as Address],
-      query: {
-        enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-      },
-      chainId: baseSepolia.id,
-    })
-  );
+  // Read farm weight data for each liquid asset individually
+  const liquidFarm1Query = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'farmWeightData',
+    args: [votingState.liquidAssets[0]?.address as Address],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && !!votingState.liquidAssets[0]?.address,
+    },
+    chainId: baseSepolia.id,
+  });
 
-  // Read farm weight data for illiquid assets  
-  const illiquidFarmWeightQueries = votingState.illiquidAssets.map(asset => 
-    useReadContract({
-      address: votingContractAddress,
-      abi: votingAbi,
-      functionName: 'farmWeightData',
-      args: [asset.address as Address],
-      query: {
-        enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
-      },
-      chainId: baseSepolia.id,
-    })
-  );
+  const liquidFarm2Query = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'farmWeightData',
+    args: [votingState.liquidAssets[1]?.address as Address],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && !!votingState.liquidAssets[1]?.address,
+    },
+    chainId: baseSepolia.id,
+  });
+
+  // Read farm weight data for each illiquid asset individually
+  const illiquidFarm1Query = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'farmWeightData',
+    args: [votingState.illiquidAssets[0]?.address as Address],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && !!votingState.illiquidAssets[0]?.address,
+    },
+    chainId: baseSepolia.id,
+  });
+
+  const illiquidFarm2Query = useReadContract({
+    address: votingContractAddress,
+    abi: votingAbi,
+    functionName: 'farmWeightData',
+    args: [votingState.illiquidAssets[1]?.address as Address],
+    query: {
+      enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000' && !!votingState.illiquidAssets[1]?.address,
+    },
+    chainId: baseSepolia.id,
+  });
 
   // Process farm weight data into structured format
   const liquidFarmWeights = useMemo(() => {
     const weights: Record<string, FarmWeightData> = {};
-    votingState.liquidAssets.forEach((asset, index) => {
-      const query = liquidFarmWeightQueries[index];
-      if (query.data) {
-        const [epoch, currentWeight, nextWeight] = query.data as [number, bigint, bigint];
-        weights[asset.id] = { epoch, currentWeight, nextWeight };
-      }
-    });
+    
+    if (liquidFarm1Query.data && votingState.liquidAssets[0]) {
+      const [epoch, currentWeight, nextWeight] = liquidFarm1Query.data as [number, bigint, bigint];
+      weights[votingState.liquidAssets[0].id] = { epoch, currentWeight, nextWeight };
+    }
+    
+    if (liquidFarm2Query.data && votingState.liquidAssets[1]) {
+      const [epoch, currentWeight, nextWeight] = liquidFarm2Query.data as [number, bigint, bigint];
+      weights[votingState.liquidAssets[1].id] = { epoch, currentWeight, nextWeight };
+    }
+    
     return weights;
-  }, [liquidFarmWeightQueries, votingState.liquidAssets]);
+  }, [liquidFarm1Query.data, liquidFarm2Query.data, votingState.liquidAssets]);
 
   const illiquidFarmWeights = useMemo(() => {
     const weights: Record<string, FarmWeightData> = {};
-    votingState.illiquidAssets.forEach((asset, index) => {
-      const query = illiquidFarmWeightQueries[index];
-      if (query.data) {
-        const [epoch, currentWeight, nextWeight] = query.data as [number, bigint, bigint];
-        weights[asset.id] = { epoch, currentWeight, nextWeight };
-      }
-    });
+    
+    if (illiquidFarm1Query.data && votingState.illiquidAssets[0]) {
+      const [epoch, currentWeight, nextWeight] = illiquidFarm1Query.data as [number, bigint, bigint];
+      weights[votingState.illiquidAssets[0].id] = { epoch, currentWeight, nextWeight };
+    }
+    
+    if (illiquidFarm2Query.data && votingState.illiquidAssets[1]) {
+      const [epoch, currentWeight, nextWeight] = illiquidFarm2Query.data as [number, bigint, bigint];
+      weights[votingState.illiquidAssets[1].id] = { epoch, currentWeight, nextWeight };
+    }
+    
     return weights;
-  }, [illiquidFarmWeightQueries, votingState.illiquidAssets]);
+  }, [illiquidFarm1Query.data, illiquidFarm2Query.data, votingState.illiquidAssets]);
 
   // Combine loading states
   const isLoading = useMemo(() => {
-    return isLoadingOwner || isLoadingIds || isLoadingShrimpWeight || isLoadingDolphinWeight || isLoadingWhaleWeight;
-  }, [isLoadingOwner, isLoadingIds, isLoadingShrimpWeight, isLoadingDolphinWeight, isLoadingWhaleWeight]);
+    const farmQueriesLoading = liquidFarm1Query.isLoading || liquidFarm2Query.isLoading || illiquidFarm1Query.isLoading || illiquidFarm2Query.isLoading;
+    return isLoadingOwner || isLoadingIds || isLoadingShrimpWeight || isLoadingDolphinWeight || isLoadingWhaleWeight || farmQueriesLoading;
+  }, [isLoadingOwner, isLoadingIds, isLoadingShrimpWeight, isLoadingDolphinWeight, isLoadingWhaleWeight, liquidFarm1Query.isLoading, liquidFarm2Query.isLoading, illiquidFarm1Query.isLoading, illiquidFarm2Query.isLoading]);
 
   // Combine errors
   const error = useMemo(() => {
@@ -206,8 +233,13 @@ export function useVotingContractData(
       void refetchShrimpWeight();
       void refetchDolphinWeight();
       void refetchWhaleWeight();
+      // Refetch farm weight data
+      void liquidFarm1Query.refetch();
+      void liquidFarm2Query.refetch();
+      void illiquidFarm1Query.refetch();
+      void illiquidFarm2Query.refetch();
     };
-  }, [refetchOwner, refetchShrimpId, refetchShrimpWeight, refetchDolphinWeight, refetchWhaleWeight]);
+  }, [refetchOwner, refetchShrimpId, refetchShrimpWeight, refetchDolphinWeight, refetchWhaleWeight, liquidFarm1Query, liquidFarm2Query, illiquidFarm1Query, illiquidFarm2Query]);
 
   return {
     owner: owner as Address | undefined,
@@ -217,6 +249,8 @@ export function useVotingContractData(
     shrimpWeight: shrimpWeight as bigint | undefined,
     dolphinWeight: dolphinWeight as bigint | undefined,
     whaleWeight: whaleWeight as bigint | undefined,
+    liquidFarmWeights,
+    illiquidFarmWeights,
     isLoading,
     error,
     refetchAll,

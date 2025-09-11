@@ -5,7 +5,7 @@ import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Vote, Send, AlertCircle, Loader2, CheckCircle2, Shield, Percent, TrendingUp, TrendingDown } from 'lucide-react';
+import { Vote, Send, AlertCircle, Loader2, CheckCircle2, Percent, TrendingUp, TrendingDown } from 'lucide-react';
 import { getCurrentVotingState } from '@/config/semaphore';
 import { AllocationData, VotingAsset, AllocationVote } from '@/types/semaphore';
 
