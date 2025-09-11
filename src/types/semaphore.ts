@@ -1,6 +1,5 @@
 import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
-import { SemaphoreProof } from '@semaphore-protocol/proof';
 
 export type SemaphoreIdentityStorage = {
   privateKey: string;
@@ -32,9 +31,29 @@ export type JoinGroupResponse = {
   error?: string;
 };
 
+// New allocation vote structure
+export type AllocationVote = {
+  farm: string; // address as string
+  weight: string; // uint96 as string for big number handling
+};
+
+// Enhanced Semaphore proof structure to match contract
+export type EnhancedSemaphoreProof = {
+  merkleTreeDepth: string;
+  merkleTreeRoot: string;
+  nullifier: string;
+  message: string;
+  scope: string;
+  points: string[]; // array of 8 elements
+};
+
 export type SubmitVoteRequest = {
-  vote: number;
-  proof: SemaphoreProof;
+  asset: string; // address of the asset these farms belong to
+  groupId: string;
+  unwindingEpochs: number;
+  liquidVotes: AllocationVote[];
+  illiquidVotes: AllocationVote[];
+  proof: EnhancedSemaphoreProof;
   nullifier: string;
 };
 
@@ -79,4 +98,19 @@ export type GroupJoinError = {
 export type VotingError = {
   type: 'NOT_GROUP_MEMBER' | 'ALREADY_VOTED' | 'PROOF_GENERATION_FAILED' | 'SUBMISSION_FAILED';
   message: string;
+};
+
+// Asset types for allocation voting
+export type VotingAsset = {
+  id: string;
+  name: string;
+  address: string;
+  description: string;
+  type: 'liquid' | 'illiquid';
+};
+
+// User's allocation for voting
+export type AllocationData = {
+  liquidVotes: AllocationVote[];
+  illiquidVotes: AllocationVote[];
 };

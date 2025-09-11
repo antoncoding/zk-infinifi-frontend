@@ -115,7 +115,7 @@ export default function VotingDashboard() {
     hasVoted, 
     voteResults, 
     loading: votingLoading,
-    submitVote,
+    submitAllocation,
     refreshResults,
     error: votingError
   } = useSemaphoreVoting(userState.identity, activeGroup.groupId);
@@ -281,22 +281,23 @@ export default function VotingDashboard() {
     void refreshResults();
   };
 
-  // Handle voting - pass the vote option to backend
-  const handleVote = async (voteOption: number, identity: Identity, group: Group) => {
+  // Handle allocation voting - pass the allocation data to backend
+  const handleAllocationVoting = async (allocationData: import('@/types/semaphore').AllocationData, identity: Identity, group: Group) => {
     try {
-      console.log('🗳️ Vote handler called with:', {
-        voteOption,
+      console.log('🗳️ Allocation handler called with:', {
+        allocationData,
         identityCommitment: identity.commitment.toString(),
         groupSize: group.size,
         activeGroupType: activeGroup.type,
         activeGroupId: activeGroup.groupId?.toString(),
-        group
+        liquidVotesCount: allocationData.liquidVotes?.length ?? 0,
+        illiquidVotesCount: allocationData.illiquidVotes?.length ?? 0
       });
       
-      // Use the real submitVote function which generates proofs and calls backend
-      const result = await submitVote(voteOption, identity, group);
+      // Use the real submitAllocation function which generates proofs and calls backend
+      const result = await submitAllocation(allocationData, identity, group);
       
-      console.log('📊 Vote submission result:', result);
+      console.log('📊 Allocation submission result:', result);
       
       if (result.success) {
         handleVoteSuccess(result.transactionHash);
@@ -304,7 +305,7 @@ export default function VotingDashboard() {
       
       return result.success;
     } catch (error) {
-      console.error('❌ Vote submission error:', error);
+      console.error('❌ Allocation submission error:', error);
       return false;
     }
   };
@@ -513,22 +514,50 @@ export default function VotingDashboard() {
             </div>
           </InfoBox>
 
-          {/* Vote Options & Results */}
-          <InfoBox title="Vote Options" className="md:col-span-2 lg:col-span-1">
-            <div className="space-y-3">
-              {votingState.voteOptions.map((option) => (
-                <div key={option.id} className="flex items-center justify-between p-3 rounded-md bg-muted/50">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{option.title}</div>
-                    {option.description && (
-                      <div className="text-xs text-muted-foreground mt-1">{option.description}</div>
-                    )}
-                  </div>
-                  <div className="text-sm font-medium ml-3">
-                    {voteResults[option.id.toString()] ?? 0} votes
-                  </div>
+          {/* Farm Options & Results */}
+          <InfoBox title="Farm Options" className="md:col-span-2 lg:col-span-1">
+            <div className="space-y-4">
+              {/* Liquid Farms */}
+              <div>
+                <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  Liquid Farms
                 </div>
-              ))}
+                <div className="space-y-2">
+                  {votingState.liquidAssets.map((asset) => (
+                    <div key={asset.id} className="flex items-center justify-between p-2 rounded-md bg-blue-50">
+                      <div className="flex-1">
+                        <div className="font-medium text-xs">{asset.name}</div>
+                        <div className="text-xs text-muted-foreground">{asset.description}</div>
+                      </div>
+                      <div className="text-xs font-medium ml-3">
+                        {voteResults[asset.id] ?? 0} allocations
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Illiquid Farms */}
+              <div>
+                <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                  Illiquid Farms
+                </div>
+                <div className="space-y-2">
+                  {votingState.illiquidAssets.map((asset) => (
+                    <div key={asset.id} className="flex items-center justify-between p-2 rounded-md bg-purple-50">
+                      <div className="flex-1">
+                        <div className="font-medium text-xs">{asset.name}</div>
+                        <div className="text-xs text-muted-foreground">{asset.description}</div>
+                      </div>
+                      <div className="text-xs font-medium ml-3">
+                        {voteResults[asset.id] ?? 0} allocations
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </InfoBox>
 
@@ -593,7 +622,7 @@ export default function VotingDashboard() {
         onVoteSuccess={() => handleVoteSuccess()}
         userIdentity={userState.identity}
         group={activeGroup.group}
-        onSubmitVote={handleVote}
+        onSubmitAllocation={handleAllocationVoting}
       />
     </div>
   );

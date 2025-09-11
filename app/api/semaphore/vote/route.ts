@@ -5,18 +5,27 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { ALLOCATION_VOTING } from '@/config/semaphore';
 import { abi as votingAbi } from '@/abis/voting';
 
-// Types for request/response
+// Types for request/response (Updated for new allocation voting)
+type AllocationVote = {
+  farm: string; // address
+  weight: string; // uint96 as string
+};
+
 type SubmitVoteRequest = {
-  vote: number;
+  asset: string; // address of the asset these farms belong to
+  groupId: string;
+  unwindingEpochs: number;
+  liquidVotes: AllocationVote[];
+  illiquidVotes: AllocationVote[];
   proof: {
-    merkleTreeDepth: number;
+    merkleTreeDepth: string;
     merkleTreeRoot: string;
     nullifier: string;
     message: string;
-    points: string[];
+    scope: string;
+    points: string[]; // array of 8 elements
   };
   nullifier: string;
-  groupId: string;
 };
 
 type SubmitVoteResponse = {
@@ -51,8 +60,12 @@ const getWalletClient = () => {
 
 // Function to submit vote to voting contract
 async function submitVoteToContract(
-  proof: SubmitVoteRequest['proof'],
+  asset: string,
   groupId: string,
+  unwindingEpochs: number,
+  liquidVotes: AllocationVote[],
+  illiquidVotes: AllocationVote[],
+  proof: SubmitVoteRequest['proof'],
   walletClient: ReturnType<typeof getWalletClient>
 ): Promise<string> {
   if (ALLOCATION_VOTING === '0x0000000000000000000000000000000000000000') {
@@ -61,31 +74,59 @@ async function submitVoteToContract(
   
   console.log(`📋 Contract call details:`);
   console.log(`  Contract Address: ${ALLOCATION_VOTING}`);
+  console.log(`  Asset: ${asset}`);
   console.log(`  Group ID: ${groupId}`);
-  console.log(`  Merkle Tree Depth: ${proof.merkleTreeDepth}`);
-  console.log(`  Merkle Tree Root: ${proof.merkleTreeRoot}`);
-  console.log(`  Nullifier: ${proof.nullifier}`);
-  console.log(`  Message: ${proof.message}`);
-  console.log(`  Points: [${proof.points.join(', ')}]`);
+  console.log(`  Unwinding Epochs: ${unwindingEpochs}`);
+  console.log(`  Liquid Votes:`, liquidVotes);
+  console.log(`  Illiquid Votes:`, illiquidVotes);
+  console.log(`  Proof:`, {
+    merkleTreeDepth: proof.merkleTreeDepth,
+    merkleTreeRoot: proof.merkleTreeRoot,
+    nullifier: proof.nullifier,
+    message: proof.message,
+    scope: proof.scope,
+    points: proof.points.length
+  });
+  
+  // Convert liquid votes to contract format
+  const contractLiquidVotes = liquidVotes.map(vote => ({
+    farm: vote.farm as `0x${string}`,
+    weight: BigInt(vote.weight)
+  }));
+  
+  // Convert illiquid votes to contract format
+  const contractIlliquidVotes = illiquidVotes.map(vote => ({
+    farm: vote.farm as `0x${string}`,
+    weight: BigInt(vote.weight)
+  }));
+  
+  // Convert proof to contract format
+  const contractProof = {
+    merkleTreeDepth: BigInt(proof.merkleTreeDepth),
+    merkleTreeRoot: BigInt(proof.merkleTreeRoot),
+    nullifier: BigInt(proof.nullifier),
+    message: BigInt(proof.message),
+    scope: BigInt(proof.scope),
+    points: proof.points.map(p => BigInt(p)) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint]
+  };
   
   const contractArgs = [
-    BigInt(proof.merkleTreeDepth),
-    BigInt(proof.merkleTreeRoot),
-    BigInt(proof.nullifier),
-    BigInt(proof.message),
-    BigInt(groupId),
-    proof.points.map(p => BigInt(p)) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint]
+    asset as `0x${string}`,              // _asset
+    BigInt(groupId),                     // _groupId  
+    unwindingEpochs,                     // _unwindingEpochs
+    contractLiquidVotes,                 // _liquidVotes
+    contractIlliquidVotes,               // _illiquidVotes
+    contractProof                        // _proof
   ];
   
-  console.log(`🔧 Contract arguments converted to BigInt:`);
-  console.log(`  merkleTreeDepth: ${contractArgs[0]}`);
-  console.log(`  merkleTreeRoot: ${contractArgs[1]}`);
-  console.log(`  nullifier: ${contractArgs[2]}`);
-  console.log(`  message: ${contractArgs[3]}`);
-  console.log(`  groupId: ${contractArgs[4]}`);
-  console.log(`  points: [${(contractArgs[5] as bigint[]).map(p => p.toString()).join(', ')}]`);
-  
-  // TODO: update to most up to date ABI
+  console.log(`🔧 Contract arguments prepared:`, {
+    asset,
+    groupId: contractArgs[1].toString(),
+    unwindingEpochs,
+    liquidVotesCount: contractLiquidVotes.length,
+    illiquidVotesCount: contractIlliquidVotes.length,
+    proofNullifier: contractProof.nullifier.toString()
+  });
 
   // Encode the vote function call
   const data = encodeFunctionData({
@@ -111,11 +152,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitVot
   try {
     // Parse request body
     const body = await request.json() as SubmitVoteRequest;
-    const { vote, proof, nullifier, groupId } = body;
+    const { asset, groupId, unwindingEpochs, liquidVotes, illiquidVotes, proof, nullifier } = body;
     
     console.log('📝 Vote API received:', {
-      vote,
+      asset,
       groupId,
+      unwindingEpochs,
+      liquidVotesCount: liquidVotes?.length ?? 0,
+      illiquidVotesCount: illiquidVotes?.length ?? 0,
       nullifier: nullifier?.slice(0, 10) + '...',
       proofKeys: Object.keys(proof || {}),
       proof: proof ? {
@@ -123,21 +167,33 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitVot
         merkleTreeRoot: proof.merkleTreeRoot?.slice(0, 10) + '...',
         nullifier: proof.nullifier?.slice(0, 10) + '...',
         message: proof.message,
+        scope: proof.scope,
         pointsLength: proof.points?.length
       } : null
     });
     
     // Validate required fields
-    if (vote === undefined || !proof || !nullifier || !groupId) {
+    if (!asset || !groupId || unwindingEpochs === undefined || !liquidVotes || !illiquidVotes || !proof || !nullifier) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required fields: vote, proof, nullifier, groupId'
+        error: 'Missing required fields: asset, groupId, unwindingEpochs, liquidVotes, illiquidVotes, proof, nullifier'
       }, { status: 400 });
     }
     
-    console.log('Vote submission request:', {
-      vote,
+    // Validate vote arrays
+    if (liquidVotes.length === 0 && illiquidVotes.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'At least one liquid or illiquid vote must be provided'
+      }, { status: 400 });
+    }
+    
+    console.log('Allocation vote submission request:', {
+      asset: asset.slice(0, 6) + '...',
       groupId,
+      unwindingEpochs,
+      liquidVotesCount: liquidVotes.length,
+      illiquidVotesCount: illiquidVotes.length,
       nullifier: nullifier.slice(0, 10) + '...'
     });
     
@@ -147,10 +203,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitVot
       const walletClient = getWalletClient();
       console.log('✅ Wallet client created successfully');
       
-      console.log('📤 Submitting vote to smart contract...');
+      console.log('📤 Submitting allocation vote to smart contract...');
       const transactionHash = await submitVoteToContract(
-        proof,
+        asset,
         groupId,
+        unwindingEpochs,
+        liquidVotes,
+        illiquidVotes,
+        proof,
         walletClient
       );
       
@@ -167,7 +227,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitVot
       });
       
       if (receipt.status === 'success') {
-        console.log('✅ Vote transaction confirmed successfully');
+        console.log('✅ Allocation vote transaction confirmed successfully');
         return NextResponse.json({
           success: true,
           transactionHash

@@ -8,15 +8,19 @@ import {
   SubmitVoteResponse,
   VoteResultsResponse,
   VotingError,
+  AllocationData,
+  EnhancedSemaphoreProof,
 } from '@/types/semaphore';
+import { getCurrentVotingState } from '@/config/semaphore';
 
 import { SemaphoreProof } from '@semaphore-protocol/proof';
+import { getEpochNow } from '@/lib/utils';
 
 type SemaphoreVotingHookResult = {
   hasVoted: boolean;
   voteResults: Record<string, number>;
   totalVotes: number;
-  submitVote: (voteOption: number, identity: Identity, group: Group) => Promise<{ success: boolean; transactionHash?: string }>;
+  submitAllocation: (allocationData: AllocationData, identity: Identity, group: Group) => Promise<{ success: boolean; transactionHash?: string }>;
   refreshResults: () => Promise<void>;
   isVoting: boolean;
   loading: boolean;
@@ -103,9 +107,28 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     }
   }, [loading, fetchVoteResults, checkUserVotingStatus, userIdentity]);
 
-  // Generate voting proof
-  const generateVotingProof = useCallback(async (
-    voteOption: number, 
+  // Helper to create a hash from allocation data for the message
+  const createAllocationHash = useCallback((allocationData: AllocationData): bigint => {
+    // Simple hash: concatenate all farm addresses and weights as strings
+    const liquidStr = allocationData.liquidVotes
+      .map(v => `${v.farm}:${v.weight}`)
+      .join(',');
+    const illiquidStr = allocationData.illiquidVotes
+      .map(v => `${v.farm}:${v.weight}`)
+      .join(',');
+    const combined = `liquid:${liquidStr}|illiquid:${illiquidStr}`;
+    
+    // Create a simple hash by summing character codes (not cryptographically secure but works for testing)
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      hash = (hash + combined.charCodeAt(i)) % (2 ** 53 - 1);
+    }
+    return BigInt(hash);
+  }, []);
+
+  // Generate voting proof for allocation voting
+  const generateAllocationProof = useCallback(async (
+    allocationData: AllocationData, 
     identity: Identity, 
     group: Group
   ): Promise<SemaphoreProof | null> => {
@@ -114,22 +137,22 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     }
 
     try {
-      // Create the message (vote option) as a bigint
-      const message = BigInt(voteOption);
+      // Create the message hash from allocation data
+      const message = createAllocationHash(allocationData);
       
-      // Use the actual group ID as scope to prevent double voting within that group
-      const scope = groupId;
+      // Scope is the epoch
+      const scope = getEpochNow();
 
       return await generateProof(identity, group, message, scope);
     } catch (err) {
-      console.error('Error generating voting proof:', err);
-      throw new Error('Failed to generate voting proof');
+      console.error('Error generating allocation proof:', err);
+      throw new Error('Failed to generate allocation proof');
     }
-  }, [groupId]);
+  }, [groupId, createAllocationHash]);
 
-  // Submit vote with proof
-  const submitVote = useCallback(async (
-    voteOption: number, 
+  // Submit allocation with proof
+  const submitAllocation = useCallback(async (
+    allocationData: AllocationData, 
     identity: Identity, 
     group: Group
   ): Promise<{ success: boolean; transactionHash?: string }> => {
@@ -154,12 +177,12 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       setError(null);
 
       // Generate proof
-      const proof = await generateVotingProof(voteOption, identity, group);
+      const proof = await generateAllocationProof(allocationData, identity, group);
 
-      console.log('proof', proof)
+      console.log('allocation proof', proof);
       
       if (!proof) {
-        throw new Error('Failed to generate voting proof');
+        throw new Error('Failed to generate allocation proof');
       }
 
       // Verify proof locally before submitting
@@ -168,28 +191,43 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
         throw new Error('Generated proof is invalid');
       }
 
-      // Submit vote to backend
+      const votingState = getCurrentVotingState();
+
+      // Convert proof to enhanced format
+      const enhancedProof: EnhancedSemaphoreProof = {
+        merkleTreeDepth: proof.merkleTreeDepth.toString(),
+        merkleTreeRoot: proof.merkleTreeRoot.toString(),
+        nullifier: proof.nullifier.toString(),
+        message: proof.message.toString(),
+        scope: proof.scope.toString(),
+        points: proof.points.map(p => p.toString())
+      };
+
+      // Submit allocation to backend
       const submitRequest: SubmitVoteRequest = {
-        vote: voteOption,
-        proof,
+        asset: votingState.assetAddress,
+        groupId: groupId!.toString(),
+        unwindingEpochs: votingState.unwindingEpochs,
+        liquidVotes: allocationData.liquidVotes,
+        illiquidVotes: allocationData.illiquidVotes,
+        proof: enhancedProof,
         nullifier: proof.nullifier.toString(),
       };
 
-      if (!groupId) {
-        throw new Error('No groupId provided for vote submission');
-      }
-
-      console.log('📤 Submitting vote with groupId:', groupId.toString());
+      console.log('📤 Submitting allocation with data:', {
+        asset: votingState.assetAddress,
+        groupId: groupId?.toString(),
+        unwindingEpochs: votingState.unwindingEpochs,
+        liquidCount: allocationData.liquidVotes.length,
+        illiquidCount: allocationData.illiquidVotes.length
+      });
 
       const response = await fetch(API_ENDPOINTS.submitVote, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...submitRequest,
-          groupId: groupId.toString(),
-        }),
+        body: JSON.stringify(submitRequest),
       });
 
       if (!response.ok) {
@@ -208,7 +246,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       const result = await response.json() as SubmitVoteResponse;
       
       if (!result.success) {
-        const errorMsg = result.error ?? 'Failed to submit vote';
+        const errorMsg = result.error ?? 'Failed to submit allocation';
         const details = result.details ? ` Details: ${result.details}` : '';
         const originalError = result.originalError ? ` (${result.originalError})` : '';
         throw new Error(`${errorMsg}${details}${originalError}`);
@@ -221,20 +259,20 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       return { success: true, transactionHash: result.transactionHash };
     } catch (err) {
       let errorType: VotingError['type'] = 'SUBMISSION_FAILED';
-      let errorMessage = 'Failed to submit vote';
+      let errorMessage = 'Failed to submit allocation';
 
       if (err instanceof Error) {
         const errorMsg = err.message.toLowerCase();
         
         if (errorMsg.includes('proof')) {
           errorType = 'PROOF_GENERATION_FAILED';
-          errorMessage = 'Failed to generate voting proof. Please try again.';
+          errorMessage = 'Failed to generate allocation proof. Please try again.';
         } else if (errorMsg.includes('already voted') || errorMsg.includes('duplicate') || errorMsg.includes('nullifier')) {
           errorType = 'ALREADY_VOTED';
           errorMessage = 'You have already voted in this group';
         } else if (errorMsg.includes('smart contract execution failed') || errorMsg.includes('execution reverted')) {
           errorType = 'SUBMISSION_FAILED';
-          errorMessage = 'Vote was rejected by the smart contract. You may have already voted or the proof is invalid.';
+          errorMessage = 'Allocation was rejected by the smart contract. You may have already voted or the proof is invalid.';
         } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('gas')) {
           errorType = 'SUBMISSION_FAILED';
           errorMessage = 'Transaction failed due to insufficient funds for gas fees. Please contact support.';
@@ -247,12 +285,12 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       }
 
       setError({ type: errorType, message: errorMessage });
-      console.error('Error submitting vote:', err);
+      console.error('Error submitting allocation:', err);
       return { success: false };
     } finally {
       setIsVoting(false);
     }
-  }, [hasVoted, generateVotingProof, groupId, refreshResults]);
+  }, [hasVoted, generateAllocationProof, groupId, refreshResults]);
 
   // Initialize vote results on mount only (not when dependencies change)
   useEffect(() => {
@@ -263,7 +301,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     hasVoted,
     voteResults,
     totalVotes,
-    submitVote,
+    submitAllocation,
     refreshResults,
     isVoting,
     loading,

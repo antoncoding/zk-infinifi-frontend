@@ -3,6 +3,13 @@ import { Address } from 'viem';
 import { useReadContract } from 'wagmi';
 import { abi as votingAbi } from '@/abis/voting';
 import { baseSepolia } from 'viem/chains';
+import { getCurrentVotingState } from '@/config/semaphore';
+
+type FarmWeightData = {
+  epoch: number;
+  currentWeight: bigint;
+  nextWeight: bigint;
+};
 
 type VotingContractDataResult = {
   owner: Address | undefined;
@@ -12,6 +19,9 @@ type VotingContractDataResult = {
   shrimpWeight: bigint | undefined;
   dolphinWeight: bigint | undefined;
   whaleWeight: bigint | undefined;
+  // Farm weight data for liquid and illiquid assets
+  liquidFarmWeights: Record<string, FarmWeightData>;
+  illiquidFarmWeights: Record<string, FarmWeightData>;
   isLoading: boolean;
   error: Error | null;
   refetchAll: () => void;
@@ -24,6 +34,7 @@ type VotingContractDataResult = {
 export function useVotingContractData(
   votingContractAddress: Address
 ): VotingContractDataResult {
+  const votingState = getCurrentVotingState();
   // Read contract owner
   const { 
     data: owner, 
@@ -123,6 +134,59 @@ export function useVotingContractData(
     },
     chainId: baseSepolia.id,
   });
+
+  // Read farm weight data for liquid assets
+  const liquidFarmWeightQueries = votingState.liquidAssets.map(asset => 
+    useReadContract({
+      address: votingContractAddress,
+      abi: votingAbi,
+      functionName: 'farmWeightData',
+      args: [asset.address as Address],
+      query: {
+        enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
+      },
+      chainId: baseSepolia.id,
+    })
+  );
+
+  // Read farm weight data for illiquid assets  
+  const illiquidFarmWeightQueries = votingState.illiquidAssets.map(asset => 
+    useReadContract({
+      address: votingContractAddress,
+      abi: votingAbi,
+      functionName: 'farmWeightData',
+      args: [asset.address as Address],
+      query: {
+        enabled: votingContractAddress !== '0x0000000000000000000000000000000000000000',
+      },
+      chainId: baseSepolia.id,
+    })
+  );
+
+  // Process farm weight data into structured format
+  const liquidFarmWeights = useMemo(() => {
+    const weights: Record<string, FarmWeightData> = {};
+    votingState.liquidAssets.forEach((asset, index) => {
+      const query = liquidFarmWeightQueries[index];
+      if (query.data) {
+        const [epoch, currentWeight, nextWeight] = query.data as [number, bigint, bigint];
+        weights[asset.id] = { epoch, currentWeight, nextWeight };
+      }
+    });
+    return weights;
+  }, [liquidFarmWeightQueries, votingState.liquidAssets]);
+
+  const illiquidFarmWeights = useMemo(() => {
+    const weights: Record<string, FarmWeightData> = {};
+    votingState.illiquidAssets.forEach((asset, index) => {
+      const query = illiquidFarmWeightQueries[index];
+      if (query.data) {
+        const [epoch, currentWeight, nextWeight] = query.data as [number, bigint, bigint];
+        weights[asset.id] = { epoch, currentWeight, nextWeight };
+      }
+    });
+    return weights;
+  }, [illiquidFarmWeightQueries, votingState.illiquidAssets]);
 
   // Combine loading states
   const isLoading = useMemo(() => {
