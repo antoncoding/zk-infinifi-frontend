@@ -3,10 +3,9 @@ import { useAccount, useSwitchChain } from 'wagmi';
 import { Identity } from '@semaphore-protocol/identity';
 import { encodeFunctionData } from 'viem';
 import { abi } from '@/abis/voting';
-import { ALLOCATION_VOTING, SEMAPHORE_CONTRACT_ADDRESS } from '@/config/semaphore';
+import { ALLOCATION_VOTING } from '@/config/semaphore';
 import { useTransactionWithToast } from './useTransactionWithToast';
 import { SupportedNetworks } from '@/utils/networks';
-import { baseSepolia } from 'viem/chains';
 
 type JoinGroupResult = {
   success: boolean;

@@ -20,8 +20,6 @@ import { useStyledToast } from '@/hooks/useStyledToast';
 import { TransactionToast } from '@/components/common/StyledToast';
 import { toast } from 'react-toastify';
 import { Loader2, Shield, Users, Vote, CheckCircle2, AlertCircle } from 'lucide-react';
-import { getExplorerTxURL } from '@/utils/external';
-import { SupportedNetworks } from '@/utils/networks';
 
 function InfoBox({ title, children, className = '' }: { 
   title: string; 
@@ -206,7 +204,7 @@ export default function VotingDashboard() {
       }
       
       console.log(`🎯 Attempting to join ${targetGroupType} group with ID: ${targetGroupId.toString()}`);
-      const result = await joinGroup(userState.identity, targetGroupId);
+      await joinGroup(userState.identity, targetGroupId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unexpected error occurred';
       handleJoinGroupError(errorMessage, groupType);
