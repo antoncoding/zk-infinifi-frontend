@@ -5,8 +5,10 @@ import { useAccount, useSignMessage } from 'wagmi';
 import { Identity } from '@semaphore-protocol/identity';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Shield, Send, Users, AlertCircle, Loader2 } from 'lucide-react';
-import { getSemaphoreConfig } from '@/config/semaphore';
+import { Shield, Send, Users, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { getSemaphoreConfig, MOCK_ASSET_ADDRESS } from '@/config/semaphore';
+import { useTokenBalance } from '@/hooks/useTokenBalance';
+import { formatUnits } from 'viem';
 
 const STEPS = [
   { id: 'identity', title: 'Generate Identity', description: 'Create anonymous identity with wallet signature', icon: Shield, label: 'Identity' },
@@ -36,6 +38,20 @@ export function SemaphoreJoinModal({
   const [signature, setSignature] = useState<string | null>(null);
 
   const config = getSemaphoreConfig();
+  const { balance, isLoadingBalance } = useTokenBalance({
+    token: MOCK_ASSET_ADDRESS,
+    user: address
+  });
+
+  // Balance requirements for different group tiers (in iUSDC)
+  const BALANCE_REQUIREMENTS = {
+    tier1: BigInt(1_000_000), // 1 iUSDC (6 decimals)
+    tier2: BigInt(2_000_000), // 2 iUSDC
+    tier3: BigInt(5_000_000), // 5 iUSDC
+  };
+
+  const hasMinimumBalance = balance >= BALANCE_REQUIREMENTS.tier1;
+  const balanceDisplay = formatUnits(balance, 6);
 
   // Reset modal state when opened
   useEffect(() => {
@@ -125,10 +141,40 @@ export function SemaphoreJoinModal({
                 <p className="font-medium mb-1">Privacy Note:</p>
                 <p>Your wallet signature creates a unique anonymous identity. This identity cannot be linked back to your wallet address.</p>
               </div>
+
+              {/* Balance Check */}
+              <div className="mt-4">
+                {isLoadingBalance ? (
+                  <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+                    <Loader2 className="h-3 w-3 inline mr-1 animate-spin" />
+                    Checking balance...
+                  </div>
+                ) : hasMinimumBalance ? (
+                  <div className="text-xs text-green-600 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+                    <p className="font-medium mb-1">✓ Balance: {balanceDisplay} iUSDC</p>
+                    <p>You have sufficient balance to join the voting group.</p>
+                  </div>
+                ) : (
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                    <p className="font-medium mb-1">⚠ Insufficient Balance</p>
+                    <p className="mb-2">Current: {balanceDisplay} iUSDC</p>
+                    <p className="mb-2">Required: 1.0 iUSDC minimum to join</p>
+                    <p className="mb-3 text-red-500">Note: We're using USDC as iUSDC for this demo</p>
+                    <a
+                      href="https://faucet.circle.com/?network=basesepolia"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-red-700 hover:text-red-800 underline font-medium"
+                    >
+                      Get testnet USDC <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
             <Button
               onClick={() => void handleSignMessage()}
-              disabled={isProcessing ?? isSigningMessage}
+              disabled={isProcessing ?? isSigningMessage ?? !hasMinimumBalance}
               className="w-full rounded-sm"
               size="lg"
             >
@@ -141,6 +187,11 @@ export function SemaphoreJoinModal({
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Processing...
+                </>
+              ) : !hasMinimumBalance ? (
+                <>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Need 1+ iUSDC to Continue
                 </>
               ) : (
                 <>

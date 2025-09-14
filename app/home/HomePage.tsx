@@ -14,17 +14,17 @@ export default function HomePage() {
           <div className="h-48 w-full sm:h-44 sm:w-4/5 md:w-3/5">
             <h2 className="mb-2 flex flex-col gap-6 px-4 text-center text-3xl leading-tight text-secondary sm:mb-10 sm:text-4xl md:text-5xl">
               <div className="flex items-center justify-center">
-                <span className="text-primary">MACI</span>
+                <span className="text-primary">ZK Infinifi</span>
               </div>
               <div className="flex items-center justify-center">
-                <span className='text-3xl'>Privacy is a Human Right</span>
+                <span className='text-3xl'>ZK-Powered Onchain Fractional Reserved</span>
               </div>
             </h2>
           </div>
           <div className="mt-8 flex w-full justify-center gap-4 px-4 sm:w-auto sm:flex-row">
             <Link href="/polls" className="block w-full sm:w-auto">
               <Button variant="cta" className="w-full px-10 py-4" size="lg">
-                Get Started
+                Vote
               </Button>
             </Link>
           </div>

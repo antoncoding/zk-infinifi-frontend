@@ -4,7 +4,11 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/common/Badge';
-import { Users, ArrowRight, Info } from 'lucide-react';
+import { Users, ArrowRight, Info, AlertCircle, ExternalLink } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { useTokenBalance } from '@/hooks/useTokenBalance';
+import { MOCK_ASSET_ADDRESS } from '@/config/semaphore';
+import { formatUnits } from 'viem';
 
 type GroupType = 'whale' | 'dolphin' | 'shrimp';
 
@@ -23,7 +27,7 @@ const GROUP_OPTIONS: GroupOption[] = [
     description: 'Entry-level voting tier'
   },
   {
-    type: 'dolphin' as const, 
+    type: 'dolphin' as const,
     name: 'Dolphin',
     emoji: '🐬',
     description: 'Intermediate voting tier'
@@ -35,6 +39,13 @@ const GROUP_OPTIONS: GroupOption[] = [
     description: 'Advanced voting tier'
   }
 ];
+
+// Balance requirements for each group tier (in iUSDC with 6 decimals)
+const BALANCE_REQUIREMENTS = {
+  shrimp: BigInt(1_000_000), // 1 iUSDC
+  dolphin: BigInt(2_000_000), // 2 iUSDC
+  whale: BigInt(5_000_000), // 5 iUSDC
+};
 
 type GroupSelectionModalProps = {
   isOpen: boolean;
@@ -66,6 +77,22 @@ export function GroupSelectionModal({
   groupWeights
 }: GroupSelectionModalProps) {
   const [selectedGroup, setSelectedGroup] = useState<GroupType | null>(null);
+  const { address } = useAccount();
+
+  const { balance, isLoadingBalance } = useTokenBalance({
+    token: MOCK_ASSET_ADDRESS,
+    user: address
+  });
+
+  const balanceDisplay = formatUnits(balance, 6);
+
+  const getRequiredBalance = (groupType: GroupType): bigint => {
+    return BALANCE_REQUIREMENTS[groupType];
+  };
+
+  const hasEnoughBalance = (groupType: GroupType): boolean => {
+    return balance >= getRequiredBalance(groupType);
+  };
 
   const handleGroupSelect = (groupType: GroupType) => {
     setSelectedGroup(groupType);
@@ -143,13 +170,15 @@ export function GroupSelectionModal({
                 const weight = getGroupWeight(group.type);
                 const isSelected = selectedGroup === group.type;
                 const isAvailable = !!groupId;
+                const hasBalance = hasEnoughBalance(group.type);
+                const requiredAmount = formatUnits(getRequiredBalance(group.type), 6);
 
                 return (
                   <div
                     key={group.type}
                     className={`relative rounded-lg border-2 p-4 cursor-pointer transition-all duration-200 ${
-                      !isAvailable 
-                        ? 'border-border/30 bg-muted/30 opacity-60 cursor-not-allowed' 
+                      !isAvailable
+                        ? 'border-border/30 bg-muted/30 opacity-60 cursor-not-allowed'
                         : isSelected
                         ? 'border-primary bg-primary/5 shadow-md dark:bg-primary/10'
                         : 'border-border hover:border-primary/50 hover:bg-accent/50'
@@ -194,7 +223,7 @@ export function GroupSelectionModal({
                         </p>
 
                         {/* Group Stats */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                           <div className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
                             <span>{memberCount} members</span>
@@ -205,6 +234,25 @@ export function GroupSelectionModal({
                             </div>
                           )}
                         </div>
+
+                        {/* Balance Requirement - only show when selected */}
+                        {isSelected && (
+                          <div className="text-xs mt-2">
+                            {isLoadingBalance ? (
+                              <div className="text-gray-500 bg-gray-100 rounded px-2 py-1 dark:bg-gray-800 dark:text-gray-400">
+                                Checking balance...
+                              </div>
+                            ) : hasBalance ? (
+                              <div className="text-green-600 bg-green-50 rounded px-2 py-1 dark:bg-green-900/20 dark:text-green-400">
+                                ✓ Balance: {balanceDisplay} / {requiredAmount} iUSDC
+                              </div>
+                            ) : (
+                              <div className="text-red-600 bg-red-50 rounded px-2 py-1 dark:bg-red-900/20 dark:text-red-400">
+                                ⚠ Requires {requiredAmount} iUSDC (You have: {balanceDisplay})
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -216,11 +264,37 @@ export function GroupSelectionModal({
                         </div>
                       </div>
                     )}
+
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* Balance Warning - shown when selected group has insufficient balance */}
+          {selectedGroup && !hasEnoughBalance(selectedGroup) && (
+            <div className="flex-shrink-0 p-4 bg-red-50 border-t border-red-200 dark:bg-red-950/20 dark:border-red-800/50">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Insufficient Balance for {GROUP_OPTIONS.find(g => g.type === selectedGroup)?.name} Group</span>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>Required: {formatUnits(getRequiredBalance(selectedGroup), 6)} iUSDC</p>
+                  <p>Current balance: {balanceDisplay} iUSDC</p>
+                  <p className="text-red-500 font-medium">Note: We're using USDC as iUSDC for this demo</p>
+                </div>
+                <a
+                  href="https://faucet.circle.com/?network=basesepolia"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-sm text-red-700 hover:text-red-800 underline font-medium"
+                >
+                  Get testnet USDC <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="flex-shrink-0 p-4 pt-3 border-t border-border/50">
@@ -232,14 +306,17 @@ export function GroupSelectionModal({
               >
                 Cancel
               </Button>
-              
+
               <Button
                 onClick={handleConfirmSelection}
-                disabled={!selectedGroup}
+                disabled={!selectedGroup || (selectedGroup && !hasEnoughBalance(selectedGroup))}
                 className="rounded-sm"
               >
                 <ArrowRight className="h-4 w-4 mr-2" />
-                Join {selectedGroup ? GROUP_OPTIONS.find(g => g.type === selectedGroup)?.name : 'Group'}
+                {selectedGroup && !hasEnoughBalance(selectedGroup)
+                  ? `Need ${formatUnits(getRequiredBalance(selectedGroup), 6)} iUSDC`
+                  : `Join ${selectedGroup ? GROUP_OPTIONS.find(g => g.type === selectedGroup)?.name : 'Group'}`
+                }
               </Button>
             </div>
           </div>

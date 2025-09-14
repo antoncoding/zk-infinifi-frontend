@@ -3,9 +3,11 @@ import { useAccount, useSwitchChain } from 'wagmi';
 import { Identity } from '@semaphore-protocol/identity';
 import { encodeFunctionData } from 'viem';
 import { abi } from '@/abis/voting';
-import { ALLOCATION_VOTING } from '@/config/semaphore';
+import { ALLOCATION_VOTING, MOCK_ASSET_ADDRESS } from '@/config/semaphore';
 import { useTransactionWithToast } from './useTransactionWithToast';
 import { SupportedNetworks } from '@/utils/networks';
+import { useTokenBalance } from './useTokenBalance';
+import { formatUnits } from 'viem';
 
 type JoinGroupResult = {
   success: boolean;
@@ -28,7 +30,15 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { switchChainAsync } = useSwitchChain()
+  const { switchChainAsync } = useSwitchChain();
+
+  const { balance } = useTokenBalance({
+    token: MOCK_ASSET_ADDRESS,
+    user: address
+  });
+
+  const MINIMUM_BALANCE = BigInt(1_000_000); // 1 iUSDC (6 decimals)
+  const hasMinimumBalance = balance >= MINIMUM_BALANCE;
 
   const { sendTransactionAsync, isConfirming } = useTransactionWithToast({
     toastId: 'join-group',
@@ -42,6 +52,13 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
   const joinGroup = useCallback(async (identity: Identity, groupId: bigint): Promise<JoinGroupResult> => {
     if (!address) {
       const error = 'Wallet not connected';
+      setError(error);
+      return { success: false, error };
+    }
+
+    if (!hasMinimumBalance) {
+      const balanceDisplay = formatUnits(balance, 6);
+      const error = `Insufficient balance: ${balanceDisplay} iUSDC. Minimum 1 iUSDC required to join the voting group.`;
       setError(error);
       return { success: false, error };
     }
@@ -110,7 +127,7 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
     } finally {
       setIsJoining(false);
     }
-  }, [address, onSuccess, sendTransactionAsync, switchChainAsync, chainId]);
+  }, [address, onSuccess, sendTransactionAsync, switchChainAsync, chainId, hasMinimumBalance, balance]);
 
   return {
     joinGroup,

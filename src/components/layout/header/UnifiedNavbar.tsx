@@ -61,7 +61,7 @@ function NavbarTitle() {
         className="text-center text-lg font-medium text-primary no-underline"
         aria-label="Infiniphore"
       >
-        Infiniphore
+        ZK-Infinifi
       </Link>
     </div>
   );
