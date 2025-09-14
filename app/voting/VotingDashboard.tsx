@@ -163,40 +163,6 @@ export default function VotingDashboard() {
     void handleJoinGroup(groupType);
   };
 
-  // Handle join group success
-  const handleJoinGroupSuccess = (groupType: string, transactionHash?: string) => {
-    const groupName = groupType.charAt(0).toUpperCase() + groupType.slice(1);
-    console.log(`✅ Successfully joined ${groupName} group!`, transactionHash ? `Transaction: ${transactionHash}` : '');
-    
-    // Show toast notification with transaction hash
-    if (transactionHash) {
-      toast.success(
-        <TransactionToast 
-          title={`Joined ${groupName} Group! 🎉`} 
-          description="You can now participate in anonymous voting."
-          hash={transactionHash}
-        />,
-        {
-          autoClose: 8000, // Show longer for transaction hash
-          onClick: () => {
-            // Open block explorer when clicked (Base Sepolia)
-            const explorerUrl = getExplorerTxURL(transactionHash, SupportedNetworks.BaseSepolia);
-            window.open(explorerUrl, '_blank');
-          }
-        }
-      );
-    } else {
-      showSuccessToast(
-        `Joined ${groupName} Group! 🎉`, 
-        'You can now participate in anonymous voting.'
-      );
-    }
-    
-    // Reset state and refresh data
-    setSelectedGroupForJoining(null);
-    refetchAllocationData();
-    refetchGroupData();
-  };
 
   // Handle join group error
   const handleJoinGroupError = (error: string, groupType?: string) => {
@@ -240,13 +206,7 @@ export default function VotingDashboard() {
       }
       
       console.log(`🎯 Attempting to join ${targetGroupType} group with ID: ${targetGroupId.toString()}`);
-      const result = await joinGroup(userState.identity, targetGroupId, storedSignature);
-      
-      if (result.success) {
-        handleJoinGroupSuccess(targetGroupType, result.transactionHash);
-      } else {
-        handleJoinGroupError(result.error ?? 'Unknown error occurred', targetGroupType);
-      }
+      const result = await joinGroup(userState.identity, targetGroupId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unexpected error occurred';
       handleJoinGroupError(errorMessage, groupType);

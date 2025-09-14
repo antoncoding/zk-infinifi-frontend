@@ -33,7 +33,7 @@ export type SemaphoreConfig = {
 export const SEMAPHORE_CONTRACT_ADDRESS: Address = '0x8A1fd199516489B0Fb7153EB5f075cDAC83c693D';
 
 // Voting contract address (deployed by user)
-export const ALLOCATION_VOTING: Address = '0x6D75b453A8B8163b59a5A0488A2d46a3Fc9527Fa';
+export const ALLOCATION_VOTING: Address = '0x7E6033a15d1587dd5F696022A30a1573771dB0cE';
 
 // Unique signature message for this voting app (prevents identity reuse across apps)
 export const APP_SIGNATURE_MESSAGE = "Sign this message to generate your anonymous identity for ZKnify. Only sign this on the official ZK Core website.";

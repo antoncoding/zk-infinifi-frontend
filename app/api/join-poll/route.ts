@@ -121,12 +121,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<JoinPollR
       }, { status: 400 });
     }
     
-    console.log('Join poll request:', {
-      walletAddress,
-      identityCommitment: identityCommitment.slice(0, 10) + '...',
-      groupId
-    });
-    
     // 1. Verify the signature
     try {
       const isValidSignature = await verifyMessage({

@@ -1,20 +1,12 @@
 import { useCallback, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSwitchChain } from 'wagmi';
 import { Identity } from '@semaphore-protocol/identity';
-import { API_ENDPOINTS } from '@/config/semaphore';
-
-type JoinGroupRequest = {
-  walletAddress: string;
-  signature: string;
-  identityCommitment: string;
-  groupId: string;
-};
-
-type JoinGroupResponse = {
-  success: boolean;
-  transactionHash?: string;
-  error?: string;
-};
+import { encodeFunctionData } from 'viem';
+import { abi } from '@/abis/voting';
+import { ALLOCATION_VOTING, SEMAPHORE_CONTRACT_ADDRESS } from '@/config/semaphore';
+import { useTransactionWithToast } from './useTransactionWithToast';
+import { SupportedNetworks } from '@/utils/networks';
+import { baseSepolia } from 'viem/chains';
 
 type JoinGroupResult = {
   success: boolean;
@@ -23,21 +15,32 @@ type JoinGroupResult = {
 };
 
 type JoinGroupHookResult = {
-  joinGroup: (identity: Identity, groupId: bigint, storedSignature?: string) => Promise<JoinGroupResult>;
+  joinGroup: (identity: Identity, groupId: bigint) => Promise<JoinGroupResult>;
   isJoining: boolean;
   error: string | null;
 };
 
 /**
- * Hook to handle joining Semaphore group via API
- * Handles signature generation and API call
+ * Hook to handle joining Semaphore group via direct on-chain transaction
+ * Uses the addMember function to add identity commitment to the group
  */
 export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResult {
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const joinGroup = useCallback(async (identity: Identity, groupId: bigint, storedSignature?: string): Promise<JoinGroupResult> => {
+  const { switchChainAsync } = useSwitchChain()
+
+  const { sendTransactionAsync, isConfirming } = useTransactionWithToast({
+    toastId: 'join-group',
+    pendingText: 'Joining Semaphore group',
+    successText: 'Successfully joined the group',
+    errorText: 'Failed to join group',
+    pendingDescription: 'Adding your identity to the group...',
+    successDescription: 'Your identity has been added to the group',
+  });
+
+  const joinGroup = useCallback(async (identity: Identity, groupId: bigint): Promise<JoinGroupResult> => {
     if (!address) {
       const error = 'Wallet not connected';
       setError(error);
@@ -48,69 +51,54 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
       setIsJoining(true);
       setError(null);
 
-      // Use stored signature or return error if not available
-      if (!storedSignature) {
-        const error = 'No signature available. Please generate identity first.';
-        setError(error);
-        return { success: false, error };
-      }
-      
-      const signature = storedSignature;
-
-      // Prepare API request
-      const requestBody: JoinGroupRequest = {
-        walletAddress: address,
-        signature,
-        identityCommitment: identity.commitment.toString(),
+      console.log('Joining group on-chain:', {
         groupId: groupId.toString(),
-      };
-
-      console.log('Sending join group request to API:', {
-        walletAddress: address,
         identityCommitment: identity.commitment.toString().slice(0, 10) + '...',
-        groupId: groupId.toString()
+        contract: ALLOCATION_VOTING
       });
 
-      // Call API
-      const response = await fetch(API_ENDPOINTS.joinGroup, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+      if (chainId !== SupportedNetworks.BaseSepolia) {
+        await switchChainAsync({chainId: SupportedNetworks.BaseSepolia})
+      }
+
+      // Send transaction directly to the Semaphore contract
+      const result = await sendTransactionAsync({
+        account: address,
+        to: ALLOCATION_VOTING,
+        data: encodeFunctionData({
+          abi: abi,
+          functionName: 'addMember',
+          args: [groupId, identity.commitment],
+        }),
+        chainId: SupportedNetworks.BaseSepolia
       });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`API request failed (${response.status}): ${errorData}`);
-      }
-
-      const result = await response.json() as JoinGroupResponse;
-
-      if (!result.success) {
-        const error = result.error ?? 'Join group API returned failure';
-        setError(error);
-        return { success: false, error };
-      }
-
-      console.log('Successfully joined group! Transaction:', result.transactionHash);
+      console.log('Successfully joined group! Transaction:', result);
       
       // Call success callback
       onSuccess?.();
       
       return {
         success: true,
-        transactionHash: result.transactionHash
+        transactionHash: result
       };
 
     } catch (err) {
       let errorMessage = 'Failed to join group';
 
       if (err instanceof Error) {
-        if (err.message.includes('No signature available')) {
-          errorMessage = 'Please generate your identity first before joining';
-        } else if (err.message.includes('API request failed')) {
-          errorMessage = err.message;
+        if (err.message.includes('already a member') || err.message.includes('duplicate') || err.message.includes('LeafAlreadyExists')) {
+          errorMessage = 'You are already a member of this group';
+        } else if (err.message.includes('insufficient funds') || err.message.includes('gas')) {
+          errorMessage = 'Transaction failed due to insufficient funds for gas fees';
+        } else if (err.message.includes('network') || err.message.includes('connection')) {
+          errorMessage = 'Network error occurred. Please check your connection and try again';
+        } else if (err.message.includes('CallerIsNotTheGroupAdmin')) {
+          errorMessage = 'Only the group admin can add members to this group';
+        } else if (err.message.includes('GroupDoesNotExist')) {
+          errorMessage = 'The specified group does not exist';
+        } else if (err.message.includes('user rejected') || err.message.includes('denied')) {
+          errorMessage = 'Transaction was rejected by user';
         } else {
           errorMessage = `Join failed: ${err.message}`;
         }
@@ -123,11 +111,11 @@ export function useSemaphoreJoinGroup(onSuccess?: () => void): JoinGroupHookResu
     } finally {
       setIsJoining(false);
     }
-  }, [address, onSuccess]);
+  }, [address, onSuccess, sendTransactionAsync, switchChainAsync, chainId]);
 
   return {
     joinGroup,
-    isJoining,
+    isJoining: isJoining || isConfirming,
     error,
   };
 }

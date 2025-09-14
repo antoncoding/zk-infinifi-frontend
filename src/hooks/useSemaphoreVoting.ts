@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
 import { generateProof, verifyProof } from '@semaphore-protocol/proof';
-import { API_ENDPOINTS } from '@/config/semaphore';
+import { ALLOCATION_VOTING, API_ENDPOINTS } from '@/config/semaphore';
 import { 
   SubmitVoteRequest,
   SubmitVoteResponse,
@@ -12,9 +12,13 @@ import {
   EnhancedSemaphoreProof,
 } from '@/types/semaphore';
 import { getCurrentVotingState } from '@/config/semaphore';
+import { showErrorToast, showSuccessToast, showLoadingToast, dismissToast } from '@/utils/errorHandling';
 
 import { SemaphoreProof } from '@semaphore-protocol/proof';
 import { getEpochNow } from '@/lib/utils';
+import { usePublicClient } from 'wagmi';
+import { SupportedNetworks } from '@/utils/networks';
+import { abi } from '@/abis/voting';
 
 type SemaphoreVotingHookResult = {
   hasVoted: boolean;
@@ -39,6 +43,8 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<VotingError | null>(null);
 
+  const publicClient = usePublicClient({chainId: SupportedNetworks.BaseSepolia})
+
 
   // Fetch voting results and check if user has voted
   const fetchVoteResults = useCallback(async (): Promise<VoteResultsResponse> => {
@@ -57,13 +63,8 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
   const checkUserVotingStatus = useCallback((nullifiers: string[], userCommitment?: string): boolean => {
     if (!userCommitment || !userIdentity) return false;
     
-    // Generate the expected nullifier for this user's identity and scope
-    // Note: In a real implementation, you'd want to check against the actual nullifier
-    // For now, we'll use a simplified check
     try {
-      // This is a simplified check - in production you'd generate the actual nullifier
-      // and check if it exists in the nullifiers array
-      return false; // TODO: Implement proper nullifier checking
+      return false; // TODO: Let the contract revert!
     } catch (err) {
       console.error('Error checking voting status:', err);
       return false;
@@ -108,23 +109,23 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
   }, [loading, fetchVoteResults, checkUserVotingStatus, userIdentity]);
 
   // Helper to create a hash from allocation data for the message
-  const createAllocationHash = useCallback((allocationData: AllocationData): bigint => {
-    // Simple hash: concatenate all farm addresses and weights as strings
-    const liquidStr = allocationData.liquidVotes
-      .map(v => `${v.farm}:${v.weight}`)
-      .join(',');
-    const illiquidStr = allocationData.illiquidVotes
-      .map(v => `${v.farm}:${v.weight}`)
-      .join(',');
-    const combined = `liquid:${liquidStr}|illiquid:${illiquidStr}`;
-    
-    // Create a simple hash by summing character codes (not cryptographically secure but works for testing)
-    let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
-      hash = (hash + combined.charCodeAt(i)) % (2 ** 53 - 1);
-    }
-    return BigInt(hash);
-  }, []);
+  const getHashFromALlocation = useCallback(async(allocationData: AllocationData): Promise<bigint> => {
+      if (!publicClient) return BigInt(0)
+
+      const message = await publicClient.readContract({
+        address: ALLOCATION_VOTING,
+        abi: abi,
+        functionName: 'hashVotes',
+        args: [
+          allocationData.liquidVotes,
+          allocationData.illiquidVotes
+        ]
+      })
+
+      console.log("Responding message (hash)", message);
+
+      return BigInt(message as bigint)
+  }, [publicClient]);
 
   // Generate voting proof for allocation voting
   const generateAllocationProof = useCallback(async (
@@ -138,7 +139,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
 
     try {
       // Create the message hash from allocation data
-      const message = createAllocationHash(allocationData);
+      const message = await getHashFromALlocation(allocationData);
       
       // Scope is the epoch
       const scope = getEpochNow();
@@ -148,7 +149,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       console.error('Error generating allocation proof:', err);
       throw new Error('Failed to generate allocation proof');
     }
-  }, [groupId, createAllocationHash]);
+  }, [groupId, getHashFromALlocation]);
 
   // Submit allocation with proof
   const submitAllocation = useCallback(async (
@@ -157,26 +158,35 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
     group: Group
   ): Promise<{ success: boolean; transactionHash?: string }> => {
     if (!identity) {
+      const errorMessage = 'Identity required for voting';
       setError({
         type: 'NOT_GROUP_MEMBER',
-        message: 'Identity required for voting'
+        message: errorMessage
       });
+      showErrorToast(new Error(errorMessage));
       return { success: false };
     }
 
     if (hasVoted) {
+      const errorMessage = 'You have already voted';
       setError({
         type: 'ALREADY_VOTED',
-        message: 'You have already voted'
+        message: errorMessage
       });
+      showErrorToast(new Error(errorMessage));
       return { success: false };
     }
+
+    let currentToastId = showLoadingToast('Submitting allocation...');
 
     try {
       setIsVoting(true);
       setError(null);
 
       // Generate proof
+      dismissToast(currentToastId);
+      currentToastId = showLoadingToast('Generating zero-knowledge proof...');
+      
       const proof = await generateAllocationProof(allocationData, identity, group);
 
       console.log('allocation proof', proof);
@@ -186,6 +196,9 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       }
 
       // Verify proof locally before submitting
+      dismissToast(currentToastId);
+      currentToastId = showLoadingToast('Verifying proof...');
+      
       const isValidProof = await verifyProof(proof as unknown as SemaphoreProof);
       if (!isValidProof) {
         throw new Error('Generated proof is invalid');
@@ -204,6 +217,9 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       };
 
       // Submit allocation to backend
+      dismissToast(currentToastId);
+      currentToastId = showLoadingToast('Submitting to blockchain...');
+      
       const submitRequest: SubmitVoteRequest = {
         asset: votingState.assetAddress,
         groupId: groupId!.toString(),
@@ -231,6 +247,8 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       });
 
       if (!response.ok) {
+        dismissToast(currentToastId);
+        
         let errorData;
         try {
           errorData = await response.json() as SubmitVoteResponse;
@@ -246,18 +264,26 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
       const result = await response.json() as SubmitVoteResponse;
       
       if (!result.success) {
+        dismissToast(currentToastId);
+        
         const errorMsg = result.error ?? 'Failed to submit allocation';
         const details = result.details ? ` Details: ${result.details}` : '';
         const originalError = result.originalError ? ` (${result.originalError})` : '';
         throw new Error(`${errorMsg}${details}${originalError}`);
       }
 
+      dismissToast(currentToastId);
+      
       // Mark user as having voted and refresh results
       setHasVoted(true);
       void refreshResults();
       
+      showSuccessToast('Allocation submitted successfully!');
       return { success: true, transactionHash: result.transactionHash };
     } catch (err) {
+      // Dismiss current toast on error
+      dismissToast(currentToastId);
+      
       let errorType: VotingError['type'] = 'SUBMISSION_FAILED';
       let errorMessage = 'Failed to submit allocation';
 
@@ -286,6 +312,7 @@ export function useSemaphoreVoting(userIdentity?: Identity, groupId?: bigint): S
 
       setError({ type: errorType, message: errorMessage });
       console.error('Error submitting allocation:', err);
+      showErrorToast(err);
       return { success: false };
     } finally {
       setIsVoting(false);

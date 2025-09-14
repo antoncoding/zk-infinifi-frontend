@@ -5,7 +5,7 @@ import { Identity } from '@semaphore-protocol/identity';
 import { Group } from '@semaphore-protocol/group';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Vote, Send, AlertCircle, Loader2, CheckCircle2, Percent, TrendingUp, TrendingDown } from 'lucide-react';
+import { Vote, Send, Loader2, CheckCircle2, Percent, TrendingUp, TrendingDown } from 'lucide-react';
 import { getCurrentVotingState } from '@/config/semaphore';
 import { AllocationData, VotingAsset, AllocationVote } from '@/types/semaphore';
 
@@ -35,7 +35,6 @@ export function SemaphoreVoteModal({
   onSubmitAllocation 
 }: SemaphoreVoteModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Allocation state for liquid and illiquid assets
@@ -63,7 +62,6 @@ export function SemaphoreVoteModal({
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(0);
-      setError(null);
       setLiquidAllocations({});
       setIlliquidAllocations({});
     }
@@ -101,17 +99,14 @@ export function SemaphoreVoteModal({
   // Handle submitting the allocation
   const handleSubmitAllocation = async () => {
     if (!group || !userIdentity || !onSubmitAllocation) {
-      setError('Missing group, identity or callback');
       return;
     }
 
     if (!isValidAllocation()) {
-      setError('Invalid allocation - ensure percentages are valid');
       return;
     }
 
     try {
-      setError(null);
       setIsProcessing(true);
       
       // Convert allocations to AllocationVote arrays
@@ -139,7 +134,8 @@ export function SemaphoreVoteModal({
         onClose();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit allocation');
+      // Error handling is now done by the hook with toasts
+      console.error('Error submitting allocation:', err);
     } finally {
       setIsProcessing(false);
     }
@@ -150,7 +146,6 @@ export function SemaphoreVoteModal({
       onClose();
       setTimeout(() => {
         setCurrentStep(0);
-        setError(null);
         setLiquidAllocations({});
         setIlliquidAllocations({});
       }, 200);
@@ -159,7 +154,6 @@ export function SemaphoreVoteModal({
 
   const handleBackToAllocation = () => {
     setCurrentStep(0);
-    setError(null);
   };
   
   // Component to render individual asset allocation input
@@ -280,7 +274,7 @@ export function SemaphoreVoteModal({
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-secondary-foreground">Submit Allocation</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Generate an anonymous proof and submit your allocation to the blockchain.
+                Generate an anonymous proof and relay your vote onchain.
               </p>
               
               {/* Allocation Summary */}
@@ -329,10 +323,6 @@ export function SemaphoreVoteModal({
                 )}
               </div>
 
-              <div className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded-md px-3 py-2">
-                <p className="font-medium mb-1">Zero-Knowledge Proof:</p>
-                <p>This will prove you're a group member without revealing your identity or linking to previous votes.</p>
-              </div>
             </div>
 
             <div className="flex gap-2">
@@ -402,18 +392,6 @@ export function SemaphoreVoteModal({
                 {renderStepContent()}
               </div>
 
-              {/* Error Display */}
-              <div className="min-h-0">
-                {error && (
-                  <div className="mt-6 rounded-lg bg-red-50 border border-red-200 p-3 flex items-start gap-2 transition-all duration-300 animate-in slide-in-from-top-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-red-700 flex-1">
-                      <p className="font-medium">Error</p>
-                      <p className="mt-1 break-words">{error}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
